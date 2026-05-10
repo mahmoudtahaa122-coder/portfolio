@@ -74,6 +74,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
+import { BlogContentEditor } from '@/components/admin/blog-content-editor'
 import {
   Select,
   SelectContent,
@@ -354,7 +355,11 @@ export function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="cv" className="space-y-4">
-              <CvPanel cv={data.cv} wrapRefresh={wrapRefresh} />
+              <CvPanel
+                cv={data.cv}
+                wrapRefresh={wrapRefresh}
+                refreshPortfolio={refresh}
+              />
             </TabsContent>
 
             <TabsContent value="blog" className="space-y-4">
@@ -1304,9 +1309,11 @@ function CertificationsPanel({
 function CvPanel({
   cv,
   wrapRefresh,
+  refreshPortfolio,
 }: {
   cv: CvRow | null
   wrapRefresh: (fn: () => Promise<void>) => Promise<void>
+  refreshPortfolio: () => Promise<unknown>
 }) {
   const [latex, setLatex] = React.useState('')
   const [saveBusy, setSaveBusy] = React.useState(false)
@@ -1345,28 +1352,32 @@ function CvPanel({
     }
     setUploadBusy(true)
     try {
-      await wrapRefresh(async () => {
-        const path = 'resume.pdf'
-        const { error: upErr } = await supabase.storage
-          .from('cv-files')
-          .upload(path, file, { upsert: true, contentType: 'application/pdf' })
-        if (upErr) throw upErr
-        const { data: pub } = supabase.storage.from('cv-files').getPublicUrl(path)
-        const publicUrl = pub.publicUrl
-        const now = new Date().toISOString()
-        if (cv?.id) {
-          const { error } = await supabase
-            .from('cv')
-            .update({ pdf_url: publicUrl, updated_at: now })
-            .eq('id', cv.id)
-          if (error) throw error
-        } else {
-          const { error } = await supabase
-            .from('cv')
-            .insert({ pdf_url: publicUrl, updated_at: now })
-          if (error) throw error
-        }
-      })
+      const path = 'resume.pdf'
+      const { error: upErr } = await supabase.storage
+        .from('cv-files')
+        .upload(path, file, { upsert: true, contentType: 'application/pdf' })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('cv-files').getPublicUrl(path)
+      const publicUrl = pub.publicUrl
+      const now = new Date().toISOString()
+      if (cv?.id) {
+        const { error } = await supabase
+          .from('cv')
+          .update({ pdf_url: publicUrl, updated_at: now })
+          .eq('id', cv.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('cv')
+          .insert({ pdf_url: publicUrl, updated_at: now })
+        if (error) throw error
+      }
+      await refreshPortfolio()
+      toast.success('PDF uploaded. Public URL saved to the cv table.')
+    } catch (e: unknown) {
+      toast.error(
+        e instanceof Error ? e.message : 'PDF upload failed. Check Storage policies and bucket cv-files.',
+      )
     } finally {
       setUploadBusy(false)
     }
@@ -1377,112 +1388,127 @@ function CvPanel({
       ? new Date(cv.updated_at).toLocaleString()
       : '—'
 
+  const pdfReady = Boolean(cv?.pdf_url?.trim())
+
   return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="size-5 text-primary" />
-          CV — LaTeX & PDF
-        </CardTitle>
-        <CardDescription>
-          Stored in{' '}
-          <code className="rounded bg-secondary px-1 py-px text-xs">cv</code> and
-          bucket{' '}
-          <code className="rounded bg-secondary px-1 py-px text-xs">cv-files</code>
-          .
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="cv-latex">LaTeX source</Label>
-          <Textarea
-            id="cv-latex"
-            rows={25}
-            value={latex}
-            onChange={(e) => setLatex(e.target.value)}
-            className="min-h-[28rem] resize-y bg-secondary/40 border-border font-mono text-sm leading-relaxed"
-            placeholder="% \\documentclass{article}\n%"
-            spellCheck={false}
-          />
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button
-            className="gap-2"
-            disabled={saveBusy}
-            onClick={() => void saveLatex()}
-          >
-            {saveBusy ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              'Save LaTeX'
-            )}
-          </Button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            className="hidden"
-            onChange={(e) => void onPdfChosen(e)}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            className="gap-2"
-            disabled={uploadBusy}
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploadBusy ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Uploading…
-              </>
-            ) : (
-              <>
-                <Upload className="size-4" />
-                Upload PDF
-              </>
-            )}
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div
+        className={`rounded-lg border px-4 py-3 text-sm ${
+          pdfReady
+            ? 'border-green-500/40 bg-green-500/10 text-foreground'
+            : 'border-border bg-secondary/40 text-muted-foreground'
+        }`}
+      >
+        {pdfReady ? (
+          <span>
+            PDF available <span aria-hidden>✅</span>
+          </span>
+        ) : (
+          <span>No PDF uploaded yet</span>
+        )}
+        <span className="mx-2 text-border">·</span>
+        <span className="text-muted-foreground">
+          Last updated: <span className="font-medium text-foreground">{updated}</span>
+        </span>
+      </div>
 
-        <Separator className="bg-border" />
-
-        <div className="grid gap-2 text-sm">
-          <div className="text-muted-foreground">
-            Last updated{' '}
-            <span className="font-medium text-foreground">{updated}</span>
-          </div>
-          <div className="text-muted-foreground">
-            PDF URL:{' '}
-            {cv?.pdf_url?.trim() ? (
-              <>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Option A — Upload PDF</CardTitle>
+            <CardDescription>
+              Public file in Storage bucket{' '}
+              <code className="rounded bg-secondary px-1 py-px text-xs">cv-files</code>
+              . URL is written to{' '}
+              <code className="rounded bg-secondary px-1 py-px text-xs">cv.pdf_url</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => void onPdfChosen(e)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2"
+              disabled={uploadBusy}
+              onClick={() => fileRef.current?.click()}
+            >
+              {uploadBusy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  <Upload className="size-4" />
+                  Choose PDF file
+                </>
+              )}
+            </Button>
+            {pdfReady && cv?.pdf_url ? (
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">Public URL: </span>
                 <a
                   href={cv.pdf_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs text-primary hover:underline break-all"
+                  className="break-all font-mono text-xs text-primary hover:underline"
                 >
                   {cv.pdf_url}
                 </a>
-                {' · '}
-                <Link
-                  href={cv.pdf_url}
-                  target="_blank"
-                  className="text-primary underline"
-                >
-                  Preview
-                </Link>
-              </>
-            ) : (
-              <span className="text-foreground">No PDF uploaded yet.</span>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Option B — LaTeX source</CardTitle>
+            <CardDescription>
+              Store raw LaTeX in{' '}
+              <code className="rounded bg-secondary px-1 py-px text-xs">cv.latex_content</code>{' '}
+              (compile separately if needed).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cv-latex">LaTeX</Label>
+              <Textarea
+                id="cv-latex"
+                rows={16}
+                value={latex}
+                onChange={(e) => setLatex(e.target.value)}
+                className="min-h-[16rem] resize-y bg-secondary/40 border-border font-mono text-sm leading-relaxed lg:min-h-[20rem]"
+                placeholder="% \\documentclass{article}\n%"
+                spellCheck={false}
+              />
+            </div>
+            <Button
+              className="gap-2"
+              disabled={saveBusy}
+              onClick={() => void saveLatex()}
+            >
+              {saveBusy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <FileText className="size-4" />
+                  Save LaTeX
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }
 
@@ -1634,7 +1660,7 @@ function BlogPanel({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-2xl">
+        <DialogContent className="max-h-[95vh] overflow-y-auto border-border bg-card sm:max-w-[min(96vw,72rem)]">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit post' : 'New post'}</DialogTitle>
           </DialogHeader>
@@ -1665,17 +1691,10 @@ function BlogPanel({
               />
             </div>
             <div className="grid gap-2">
-              <Label>Content (Markdown supported)</Label>
-              <Textarea
-                rows={20}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[20rem] resize-y bg-secondary/40 border-border font-mono text-sm leading-relaxed"
-                spellCheck={false}
-                placeholder={'# Heading\n\nWrite **markdown** here…'}
-              />
+              <Label>Content (Markdown)</Label>
+              <BlogContentEditor value={content} onChange={setContent} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Category</Label>
                 <Input
@@ -1711,7 +1730,7 @@ function BlogPanel({
                 className="bg-secondary/40 border-border"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Icon name (Lucide)</Label>
                 <Input

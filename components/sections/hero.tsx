@@ -254,7 +254,7 @@ export function Hero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+                  className="mb-6 text-3xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
                 >
                   <span className="text-foreground">Hi, I&apos;m </span>
                   <span className="animate-gradient bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent">
@@ -310,7 +310,7 @@ export function Hero() {
                 <Button
                   asChild
                   size="lg"
-                  className="group gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-12 min-h-12 w-full min-w-[12rem] gap-2 bg-primary text-primary-foreground hover:bg-primary/90 sm:h-11 sm:min-h-11 sm:w-auto"
                 >
                   <Link href="#projects">
                     View My Work
@@ -321,7 +321,7 @@ export function Hero() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="gap-2 border-border transition-colors hover:border-primary hover:bg-secondary"
+                  className="h-12 min-h-12 w-full min-w-[12rem] gap-2 border-border transition-colors hover:border-primary hover:bg-secondary sm:h-11 sm:min-h-11 sm:w-auto"
                 >
                   <Link href="#contact">
                     <Mail className="h-4 w-4" />

@@ -2,15 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import {
-  ArrowLeft,
-  ArrowRight,
-  Calendar,
-  Check,
-  Clock,
-  Link2,
-  Loader2,
-} from 'lucide-react'
+import { ArrowLeft, ArrowRight, Calendar, Check, Clock, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export type BlogPostLayoutProps = {
@@ -33,7 +25,6 @@ export function BlogPostLayout({
   tags,
   prev,
   next,
-  loading = false,
   children,
 }: BlogPostLayoutProps) {
   const [copied, setCopied] = useState(false)
@@ -93,7 +84,7 @@ export function BlogPostLayout({
               <Button
                 variant="outline"
                 size="sm"
-                className="shrink-0 gap-2 border-border"
+                className="h-11 min-h-11 shrink-0 gap-2 border-border px-4 sm:h-10 sm:min-h-0"
                 onClick={() => void handleCopyLink()}
               >
                 {copied ? (
@@ -118,12 +109,6 @@ export function BlogPostLayout({
                 <Clock className="h-4 w-4 shrink-0" />
                 {readTime}
               </span>
-              {loading ? (
-                <span className="inline-flex items-center gap-1.5 text-xs">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Updating…
-                </span>
-              ) : null}
             </div>
 
             {tags?.length ? (
@@ -156,7 +141,7 @@ export function BlogPostLayout({
                   </span>
                   <span className="flex items-center gap-2 font-medium text-foreground group-hover:text-primary">
                     <ArrowLeft className="h-4 w-4 shrink-0" />
-                    <span className="line-clamp-2">{prev.title}</span>
+                    <span className="line-clamp-2 break-words">{prev.title}</span>
                   </span>
                 </Link>
               ) : (
@@ -174,7 +159,9 @@ export function BlogPostLayout({
                   </span>
                   <span className="flex items-center justify-end gap-2 font-medium text-foreground group-hover:text-primary sm:flex-row-reverse">
                     <ArrowRight className="h-4 w-4 shrink-0" />
-                    <span className="line-clamp-2 text-left sm:text-right">{next.title}</span>
+                    <span className="line-clamp-2 break-words text-left sm:text-right">
+                      {next.title}
+                    </span>
                   </span>
                 </Link>
               ) : (

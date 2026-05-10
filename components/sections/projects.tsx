@@ -123,24 +123,26 @@ export function Projects() {
                   whileHover={{ y: -8 }}
                 >
                   <Card className="group h-full border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
+                    <CardHeader className="min-w-0 pb-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <motion.div
-                          className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10"
                           whileHover={{ rotate: 5, scale: 1.1 }}
                         >
                           <PI className="h-6 w-6 text-primary" />
                         </motion.div>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {project.year}
-                        </span>
+                        {project.year ? (
+                          <span className="w-fit font-mono text-xs text-muted-foreground sm:shrink-0 sm:text-right">
+                            {project.year}
+                          </span>
+                        ) : null}
                       </div>
-                      <CardTitle className="mt-4 text-xl transition-colors group-hover:text-primary">
+                      <CardTitle className="mt-4 break-words text-xl transition-colors group-hover:text-primary">
                         {project.title}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                    <CardContent className="min-w-0">
+                      <p className="mb-6 break-words text-sm leading-relaxed text-muted-foreground">
                         {project.description}
                       </p>
 
@@ -165,7 +167,7 @@ export function Projects() {
                             asChild
                             variant="outline"
                             size="sm"
-                            className="gap-2 transition-colors hover:border-primary hover:text-primary"
+                            className="h-11 min-h-11 gap-2 transition-colors hover:border-primary hover:text-primary sm:h-9 sm:min-h-0"
                           >
                             <Link
                               href={project.github}
@@ -207,13 +209,13 @@ export function Projects() {
                   const href = cert.link?.trim()
                   const inner = (
                     <Card className="cursor-pointer border-border bg-card transition-all hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5">
-                      <CardContent className="flex items-center gap-3 p-4">
+                      <CardContent className="flex min-w-0 items-center gap-3 p-4">
                         <div className="h-2 w-2 shrink-0 rounded-full bg-accent transition-transform group-hover:scale-150" />
                         <div className="min-w-0 flex-1">
-                          <span className="block truncate text-sm text-foreground transition-colors group-hover:text-accent">
+                          <span className="block break-words text-sm text-foreground transition-colors group-hover:text-accent">
                             {cert.name}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="break-words text-xs text-muted-foreground">
                             {cert.provider ?? ""}
                           </span>
                         </div>

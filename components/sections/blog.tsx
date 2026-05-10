@@ -100,7 +100,7 @@ export function Blog() {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid min-w-0 gap-6 md:grid-cols-2">
           {loading ? (
             [0, 1, 2, 3].map((i) => (
               <Skeleton key={`blog-s-${i}`} className="h-[340px] rounded-xl border border-border" />
@@ -117,28 +117,28 @@ export function Blog() {
                   viewport={{ once: true }}
                   whileHover={{ y: -5 }}
                 >
-                  <Link href={`/blog/${post.slug}`}>
-                    <Card className="group h-full cursor-pointer border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10">
-                      <CardHeader className="pb-3">
-                        <div className="mb-3 flex items-start justify-between">
+                  <Link href={`/blog/${post.slug}`} className="block min-w-0">
+                    <Card className="group h-full min-w-0 cursor-pointer border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10">
+                      <CardHeader className="min-w-0 pb-3">
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <motion.div
-                            className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"
+                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10"
                             whileHover={{ rotate: 5, scale: 1.1 }}
                           >
                             <PostIcon className="h-6 w-6 text-primary" />
                           </motion.div>
                           {post.category ? (
-                            <span className="rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
+                            <span className="w-fit rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
                               {post.category}
                             </span>
                           ) : null}
                         </div>
-                        <CardTitle className="group-hover:text-primary text-lg leading-tight transition-colors">
+                        <CardTitle className="break-words text-lg leading-tight transition-colors group-hover:text-primary">
                           {post.title}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                      <CardContent className="min-w-0">
+                        <p className="mb-4 break-words text-sm leading-relaxed text-muted-foreground">
                           {post.excerpt}
                         </p>
 
@@ -155,8 +155,8 @@ export function Blog() {
                           </div>
                         ) : null}
 
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             {post.date ? (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 shrink-0" />
@@ -170,7 +170,7 @@ export function Blog() {
                               </span>
                             ) : null}
                           </div>
-                          <span className="flex items-center gap-1 text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                          <span className="flex min-h-11 items-center gap-1 text-primary sm:min-h-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                             Read more
                             <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                           </span>

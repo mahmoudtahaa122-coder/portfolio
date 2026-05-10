@@ -82,8 +82,8 @@ export function Skills() {
   const categories = useMemo(() => groupSkillsFromRows(dbSkills), [dbSkills])
 
   return (
-    <section id="skills" className="py-20 sm:py-32" ref={ref}>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <section id="skills" className="overflow-x-hidden py-20 sm:py-32" ref={ref}>
+      <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
@@ -137,7 +137,7 @@ export function Skills() {
                         {category.title}
                       </h3>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex max-w-full flex-wrap gap-2">
                       {category.skills.map((skill) => (
                         <SkillBadge
                           key={`${category.title}-${skill.name}`}

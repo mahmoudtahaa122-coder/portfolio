@@ -41,18 +41,18 @@ export function Footer() {
   const em = profile?.email?.trim()
 
   return (
-    <footer className="border-t border-border py-12">
+    <footer className="border-t border-border py-10 sm:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+        <div className="flex flex-col items-center justify-center gap-6 text-center md:flex-row md:justify-between md:text-left">
           <Link
             href="#home"
-            className="flex items-center gap-2 font-mono font-bold text-primary"
+            className="flex max-w-full items-center justify-center gap-2 break-words font-mono font-bold text-primary md:justify-start"
           >
             <Terminal className="h-5 w-5 shrink-0" />
-            <span>{displayName || ''}</span>
+            <span className="break-words">{displayName || ''}</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             {gh ? (
               <Link
                 href={gh.startsWith('http') ? gh : `https://${gh}`}
@@ -86,7 +86,7 @@ export function Footer() {
             ) : null}
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-full break-words text-sm text-muted-foreground">
             © {currentYear}
             {displayName ? ` ${displayName}` : ''}. All rights reserved.
           </p>

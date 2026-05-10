@@ -195,7 +195,7 @@ export function Contact() {
                         >
                           <item.icon className="h-5 w-5 text-primary" />
                         </motion.div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm text-muted-foreground">{item.label}</p>
                           {item.href ? (
                             <Link
@@ -355,7 +355,7 @@ export function Contact() {
                       <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="h-12 min-h-12 w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                       >
                         {isSubmitting ? (
                           <>

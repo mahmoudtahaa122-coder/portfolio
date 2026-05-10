@@ -144,39 +144,37 @@ export function About() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <Card className="border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                             <GraduationCap className="h-6 w-6 text-primary" />
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-foreground">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="break-words font-semibold text-foreground">
                               {ed.degree ?? "—"}
                             </h4>
                             {ed.field ? (
-                              <p className="font-medium text-primary">{ed.field}</p>
+                              <p className="break-words font-medium text-primary">{ed.field}</p>
                             ) : null}
                             {ed.institution ? (
-                              <p className="mt-1 text-muted-foreground">
+                              <p className="mt-1 break-words text-muted-foreground">
                                 {ed.institution}
                               </p>
                             ) : null}
-                            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              {ed.period ? (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  {ed.period}
-                                </span>
-                              ) : null}
-                              {ed.location ? (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  {ed.location}
-                                </span>
-                              ) : null}
-                            </div>
+                            {ed.period ? (
+                              <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-muted-foreground sm:mt-3">
+                                <Calendar className="h-4 w-4 shrink-0" />
+                                <span className="break-words">{ed.period}</span>
+                              </p>
+                            ) : null}
+                            {ed.location ? (
+                              <p className="mt-1 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                                <MapPin className="h-4 w-4 shrink-0" />
+                                <span className="break-words">{ed.location}</span>
+                              </p>
+                            ) : null}
                             {ed.grade ? (
-                              <p className="mt-3 font-medium text-accent">{ed.grade}</p>
+                              <p className="mt-3 break-words font-medium text-accent">{ed.grade}</p>
                             ) : null}
                           </div>
                         </div>
@@ -220,39 +218,40 @@ export function About() {
                     >
                       <Card className="cursor-pointer border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
                         <CardContent className="p-4 sm:p-6">
-                          <div className="flex items-start gap-4">
+                          <div className="flex items-start gap-3 sm:gap-4">
                             <div
-                              className={`mt-2 h-2 w-2 flex-shrink-0 rounded-full ${
+                              className={`mt-2 h-2 w-2 shrink-0 rounded-full ${
                                 t === "military" ? "bg-amber-500" : "bg-primary"
                               }`}
                             />
                             <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <h4 className="truncate font-semibold text-foreground">
-                                  {exp.title}
-                                </h4>
-                                <span
-                                  className={`w-fit rounded-full px-2 py-0.5 text-xs capitalize ${
-                                    t === "work"
-                                      ? "bg-primary/20 text-primary"
-                                      : t === "internship"
-                                        ? "bg-accent/20 text-accent"
-                                        : t === "military"
-                                          ? "bg-amber-500/20 text-amber-500"
-                                          : "bg-secondary text-secondary-foreground"
-                                  }`}
-                                >
-                                  {t === "military" ? "national service" : t}
-                                </span>
-                              </div>
-                              <p className="text-sm font-medium text-primary">
+                              <h4 className="break-words font-semibold text-foreground">
+                                {exp.title}
+                              </h4>
+                              <span
+                                className={`mt-2 inline-flex w-fit rounded-full px-2 py-0.5 text-xs capitalize sm:mt-0 sm:ml-0 ${
+                                  t === "work"
+                                    ? "bg-primary/20 text-primary"
+                                    : t === "internship"
+                                      ? "bg-accent/20 text-accent"
+                                      : t === "military"
+                                        ? "bg-amber-500/20 text-amber-500"
+                                        : "bg-secondary text-secondary-foreground"
+                                }`}
+                              >
+                                {t === "military" ? "national service" : t}
+                              </span>
+                              <p className="mt-2 break-words text-sm font-medium text-primary">
                                 {exp.company ?? ""}
                               </p>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {exp.period ?? ""}
-                              </p>
+                              {exp.period ? (
+                                <p className="mt-1 flex flex-wrap items-center gap-1 break-words text-xs text-muted-foreground">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                  {exp.period}
+                                </p>
+                              ) : null}
                               {exp.description ? (
-                                <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                                <p className="mt-2 break-words text-sm leading-relaxed text-muted-foreground sm:line-clamp-4">
                                   {exp.description}
                                 </p>
                               ) : null}

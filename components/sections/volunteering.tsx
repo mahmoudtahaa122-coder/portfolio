@@ -80,15 +80,15 @@ export function Volunteering() {
                 >
                   <Card className="h-full border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10">
                     <CardContent className="p-6">
-                      <div className="mb-4 flex items-start gap-4">
+                      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start">
                         <motion.div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20" whileHover={{ rotate: 5, scale: 1.1 }}>
                           <Icon className="h-7 w-7 text-primary" />
                         </motion.div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-lg font-semibold text-foreground">
                             {exp.organization}
                           </h3>
-                          <p className="font-medium text-primary">{exp.title}</p>
+                          <p className="break-words font-medium text-primary">{exp.title}</p>
                         </div>
                       </div>
 
@@ -108,7 +108,7 @@ export function Volunteering() {
                       </div>
 
                       {exp.description ? (
-                        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                        <p className="mb-4 break-words text-sm leading-relaxed text-muted-foreground">
                           {exp.description}
                         </p>
                       ) : null}

@@ -69,24 +69,9 @@ export function Navigation() {
     }
   }, [])
 
-  async function handleDownloadCv() {
+  function handleDownloadCv() {
     if (!pdfUrl) return
-    try {
-      const res = await fetch(pdfUrl)
-      if (!res.ok) throw new Error('fetch failed')
-      const blob = await res.blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = 'cv.pdf'
-      a.rel = 'noopener'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(blobUrl)
-    } catch {
-      window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-    }
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -118,8 +103,8 @@ export function Navigation() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="gap-2 border-primary/40 bg-transparent"
-                onClick={() => void handleDownloadCv()}
+                className="h-11 min-h-11 gap-2 border-primary/40 bg-transparent sm:h-9 sm:min-h-0"
+                onClick={handleDownloadCv}
               >
                 <Download className="h-4 w-4 shrink-0" />
                 Download CV
@@ -130,7 +115,7 @@ export function Navigation() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="h-11 min-h-11 min-w-11 md:hidden"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -145,7 +130,7 @@ export function Navigation() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                  className="flex min-h-11 items-center py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                   onClick={() => setIsOpen(false)}
                 >
                   {link.label}
@@ -156,10 +141,10 @@ export function Navigation() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-2 w-full justify-center gap-2 border-primary/40"
+                  className="mt-2 h-11 min-h-11 w-full justify-center gap-2 border-primary/40"
                   onClick={() => {
                     setIsOpen(false)
-                    void handleDownloadCv()
+                    handleDownloadCv()
                   }}
                 >
                   <Download className="h-4 w-4 shrink-0" />

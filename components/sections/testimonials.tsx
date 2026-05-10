@@ -85,7 +85,7 @@ export function Testimonials() {
                       <Quote className="h-24 w-24 text-primary" />
                     </div>
 
-                    <CardContent className="relative p-8">
+                    <CardContent className="relative p-4 sm:p-8">
                       <div className="mb-6 flex gap-1">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <motion.div
@@ -100,11 +100,11 @@ export function Testimonials() {
                         ))}
                       </div>
 
-                      <blockquote className="mb-8 text-lg leading-relaxed italic text-foreground">
+                      <blockquote className="mb-8 break-words text-base leading-relaxed italic text-foreground sm:text-lg">
                         &ldquo;{testimonial.quote}&rdquo;
                       </blockquote>
 
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-4">
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-lg font-bold text-primary-foreground">
                             {initialsBadge(testimonial.name)}
