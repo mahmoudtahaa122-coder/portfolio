@@ -1,38 +1,20 @@
 import { Metadata } from "next"
-import { BlogPostLayout } from "@/components/blog/blog-post-layout"
+import { BlogPostPage } from "@/components/blog/blog-post-page"
 
 export const metadata: Metadata = {
   title: "Building a Subnet Calculator CLI Tool in Python | Mahmoud Taha",
   description: "Step-by-step tutorial on creating a command-line subnet calculator using Python's ipaddress module. Perfect for network engineers.",
 }
 
-const relatedPosts = [
-  {
-    title: "Understanding OSPF: A Complete Guide for CCNA Students",
-    href: "/blog/understanding-ospf",
-    category: "Networking",
-  },
-  {
-    title: "Network Automation with Python: Building a Cisco Device Scanner",
-    href: "/blog/network-automation-python",
-    category: "Automation",
-  },
-  {
-    title: "Securing Your Network: ACL Best Practices",
-    href: "/blog/acl-best-practices",
-    category: "Security",
-  },
-]
-
 export default function SubnetCalculatorBlogPost() {
   return (
-    <BlogPostLayout
-      title="Building a Subnet Calculator CLI Tool in Python"
-      category="Development"
-      date="December 2025"
-      readTime="8 min read"
-      tags={["Python", "Subnetting", "CLI"]}
-      relatedPosts={relatedPosts}
+    <BlogPostPage
+      slug="subnet-calculator-python"
+      fallbackTitle="Building a Subnet Calculator CLI Tool in Python"
+      fallbackCategory="Development"
+      fallbackDate="December 2025"
+      fallbackReadTime="8 min read"
+      fallbackTags={["Python", "Subnetting", "CLI"]}
     >
       <p>
         Subnetting is a fundamental skill for network engineers, but doing calculations manually can be tedious and error-prone. In this tutorial, we&apos;ll build a powerful command-line subnet calculator in Python that can help you quickly calculate network information, split subnets, and export results to CSV.
@@ -524,6 +506,6 @@ $ python subnet_calc.py 10.0.0.0/8 --split 16 --export subnets.csv
       <p>
         Check out the full project on my <a href="https://github.com/mahmoud-taha-dev/Subnet_Calculator" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
       </p>
-    </BlogPostLayout>
+    </BlogPostPage>
   )
 }

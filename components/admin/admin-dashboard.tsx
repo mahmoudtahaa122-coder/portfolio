@@ -11,6 +11,8 @@ import {
   LogOut,
   LayoutDashboard,
   Loader2,
+  FileText,
+  Upload,
 } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase'
@@ -18,6 +20,7 @@ import { usePortfolioAdmin } from '@/hooks/use-portfolio-admin'
 import type {
   BlogPostRow,
   CertificationRow,
+  CvRow,
   EducationRow,
   ExperienceRow,
   ProfileRow,
@@ -294,6 +297,7 @@ export function AdminDashboard() {
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="certifications">Certifications</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
+              <TabsTrigger value="cv">CV</TabsTrigger>
               <TabsTrigger value="blog">Blog</TabsTrigger>
               <TabsTrigger value="testimonials">Testimonials</TabsTrigger>
               <TabsTrigger value="volunteering">Volunteering</TabsTrigger>
@@ -347,6 +351,10 @@ export function AdminDashboard() {
                 wrapRefresh={wrapRefresh}
                 onDelete={(row) => setPendingDelete({ kind: 'education', row })}
               />
+            </TabsContent>
+
+            <TabsContent value="cv" className="space-y-4">
+              <CvPanel cv={data.cv} wrapRefresh={wrapRefresh} />
             </TabsContent>
 
             <TabsContent value="blog" className="space-y-4">
@@ -672,6 +680,7 @@ function SkillsPanel({
   const [category, setCategory] = React.useState('')
   const [categoryIcon, setCategoryIcon] = React.useState('')
   const [name, setName] = React.useState('')
+  const [description, setDescription] = React.useState('')
   const [level, setLevel] = React.useState('80')
   const [sortOrder, setSortOrder] = React.useState('0')
 
@@ -680,6 +689,7 @@ function SkillsPanel({
     setCategory('')
     setCategoryIcon('')
     setName('')
+    setDescription('')
     setLevel('80')
     setSortOrder(String(maxSortOrder(rows) + 1))
     setOpen(true)
@@ -690,6 +700,7 @@ function SkillsPanel({
     setCategory(row.category)
     setCategoryIcon(row.category_icon ?? '')
     setName(row.name)
+    setDescription(row.description ?? '')
     setLevel(String(row.level ?? 0))
     setSortOrder(String(row.sort_order ?? 0))
     setOpen(true)
@@ -700,6 +711,7 @@ function SkillsPanel({
       category,
       category_icon: categoryIcon || null,
       name,
+      description: description.trim() ? description.trim() : null,
       level: Math.min(100, Math.max(0, Number.parseInt(level, 10) || 0)),
       sort_order: Number.parseInt(sortOrder, 10) || 0,
     }
@@ -733,6 +745,7 @@ function SkillsPanel({
               <TableRow>
                 <TableHead>Category</TableHead>
                 <TableHead>Skill</TableHead>
+                <TableHead className="max-w-[200px]">Description</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -742,6 +755,9 @@ function SkillsPanel({
                 <TableRow key={row.id}>
                   <TableCell>{row.category}</TableCell>
                   <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
+                    {row.description ?? '—'}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {row.level ?? '—'}%
                   </TableCell>
@@ -769,7 +785,7 @@ function SkillsPanel({
               ))}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     No skills.
                   </TableCell>
                 </TableRow>
@@ -808,6 +824,16 @@ function SkillsPanel({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="bg-secondary/40 border-border"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short tooltip shown on the public skills section"
+                className="min-h-[72px] bg-secondary/40 border-border text-sm"
+                rows={2}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1273,6 +1299,193 @@ function CertificationsPanel({
   )
 }
 
+/** ---- CV ---- */
+
+function CvPanel({
+  cv,
+  wrapRefresh,
+}: {
+  cv: CvRow | null
+  wrapRefresh: (fn: () => Promise<void>) => Promise<void>
+}) {
+  const [latex, setLatex] = React.useState('')
+  const [saveBusy, setSaveBusy] = React.useState(false)
+  const [uploadBusy, setUploadBusy] = React.useState(false)
+  const fileRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    setLatex(cv?.latex_content ?? '')
+  }, [cv?.id, cv?.latex_content])
+
+  async function saveLatex() {
+    setSaveBusy(true)
+    try {
+      await wrapRefresh(async () => {
+        const now = new Date().toISOString()
+        const payload = { latex_content: latex.trim() ? latex : null, updated_at: now }
+        if (cv?.id) {
+          const { error } = await supabase.from('cv').update(payload).eq('id', cv.id)
+          if (error) throw error
+        } else {
+          const { error } = await supabase.from('cv').insert(payload)
+          if (error) throw error
+        }
+      })
+    } finally {
+      setSaveBusy(false)
+    }
+  }
+
+  async function onPdfChosen(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0]
+    ev.target.value = ''
+    if (!file || !/\.pdf$/i.test(file.name) || file.type !== 'application/pdf') {
+      toast.error('Please choose a valid .pdf file.')
+      return
+    }
+    setUploadBusy(true)
+    try {
+      await wrapRefresh(async () => {
+        const path = 'resume.pdf'
+        const { error: upErr } = await supabase.storage
+          .from('cv-files')
+          .upload(path, file, { upsert: true, contentType: 'application/pdf' })
+        if (upErr) throw upErr
+        const { data: pub } = supabase.storage.from('cv-files').getPublicUrl(path)
+        const publicUrl = pub.publicUrl
+        const now = new Date().toISOString()
+        if (cv?.id) {
+          const { error } = await supabase
+            .from('cv')
+            .update({ pdf_url: publicUrl, updated_at: now })
+            .eq('id', cv.id)
+          if (error) throw error
+        } else {
+          const { error } = await supabase
+            .from('cv')
+            .insert({ pdf_url: publicUrl, updated_at: now })
+          if (error) throw error
+        }
+      })
+    } finally {
+      setUploadBusy(false)
+    }
+  }
+
+  const updated =
+    cv?.updated_at != null && String(cv.updated_at).trim() !== ''
+      ? new Date(cv.updated_at).toLocaleString()
+      : '—'
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="size-5 text-primary" />
+          CV — LaTeX & PDF
+        </CardTitle>
+        <CardDescription>
+          Stored in{' '}
+          <code className="rounded bg-secondary px-1 py-px text-xs">cv</code> and
+          bucket{' '}
+          <code className="rounded bg-secondary px-1 py-px text-xs">cv-files</code>
+          .
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="cv-latex">LaTeX source</Label>
+          <Textarea
+            id="cv-latex"
+            rows={25}
+            value={latex}
+            onChange={(e) => setLatex(e.target.value)}
+            className="min-h-[28rem] resize-y bg-secondary/40 border-border font-mono text-sm leading-relaxed"
+            placeholder="% \\documentclass{article}\n%"
+            spellCheck={false}
+          />
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            className="gap-2"
+            disabled={saveBusy}
+            onClick={() => void saveLatex()}
+          >
+            {saveBusy ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              'Save LaTeX'
+            )}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            onChange={(e) => void onPdfChosen(e)}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            className="gap-2"
+            disabled={uploadBusy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {uploadBusy ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Upload className="size-4" />
+                Upload PDF
+              </>
+            )}
+          </Button>
+        </div>
+
+        <Separator className="bg-border" />
+
+        <div className="grid gap-2 text-sm">
+          <div className="text-muted-foreground">
+            Last updated{' '}
+            <span className="font-medium text-foreground">{updated}</span>
+          </div>
+          <div className="text-muted-foreground">
+            PDF URL:{' '}
+            {cv?.pdf_url?.trim() ? (
+              <>
+                <a
+                  href={cv.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-primary hover:underline break-all"
+                >
+                  {cv.pdf_url}
+                </a>
+                {' · '}
+                <Link
+                  href={cv.pdf_url}
+                  target="_blank"
+                  className="text-primary underline"
+                >
+                  Preview
+                </Link>
+              </>
+            ) : (
+              <span className="text-foreground">No PDF uploaded yet.</span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 /** ---- Blog ---- */
 
 function BlogPanel({
@@ -1295,6 +1508,7 @@ function BlogPanel({
   const [tagsCsv, setTagsCsv] = React.useState('')
   const [iconName, setIconName] = React.useState('')
   const [sortOrder, setSortOrder] = React.useState('0')
+  const [content, setContent] = React.useState('')
 
   function openCreate() {
     setEditing(null)
@@ -1307,6 +1521,7 @@ function BlogPanel({
     setTagsCsv('')
     setIconName('')
     setSortOrder(String(maxSortOrder(rows) + 1))
+    setContent('')
     setOpen(true)
   }
 
@@ -1321,6 +1536,7 @@ function BlogPanel({
     setTagsCsv(listToCsv(row.tags))
     setIconName(row.icon_name ?? '')
     setSortOrder(String(row.sort_order ?? 0))
+    setContent(row.content ?? '')
     setOpen(true)
   }
 
@@ -1328,6 +1544,7 @@ function BlogPanel({
     const payload = {
       title,
       excerpt: excerpt || null,
+      content: content.trim() ? content : null,
       slug,
       category: category || null,
       read_time: readTime || null,
@@ -1417,7 +1634,7 @@ function BlogPanel({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit post' : 'New post'}</DialogTitle>
           </DialogHeader>
@@ -1445,6 +1662,17 @@ function BlogPanel({
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
                 className="bg-secondary/40 border-border"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Content (Markdown supported)</Label>
+              <Textarea
+                rows={20}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="min-h-[20rem] resize-y bg-secondary/40 border-border font-mono text-sm leading-relaxed"
+                spellCheck={false}
+                placeholder={'# Heading\n\nWrite **markdown** here…'}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">

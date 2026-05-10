@@ -16,6 +16,7 @@ const emptyData: PortfolioAdminData = {
   education: [],
   testimonials: [],
   volunteering: [],
+  cv: null,
 }
 
 function firstSupabaseError(
@@ -38,6 +39,7 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
     education,
     testimonials,
     volunteering,
+    cvResp,
   ] = await Promise.all([
     supabase.from('projects').select('*').order('sort_order', { ascending: true }),
     supabase.from('skills').select('*').order('sort_order', { ascending: true }),
@@ -48,6 +50,7 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
     supabase.from('education').select('*').order('sort_order', { ascending: true }),
     supabase.from('testimonials').select('*').order('sort_order', { ascending: true }),
     supabase.from('volunteering').select('*').order('sort_order', { ascending: true }),
+    supabase.from('cv').select('*').limit(1).maybeSingle(),
   ])
 
   const err = firstSupabaseError([
@@ -63,6 +66,11 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
   ])
   if (err) throw err
 
+  const cv =
+    cvResp.error || !cvResp.data
+      ? null
+      : (cvResp.data as PortfolioAdminData['cv'])
+
   return {
     projects: (projects.data ?? []) as PortfolioAdminData['projects'],
     skills: (skills.data ?? []) as PortfolioAdminData['skills'],
@@ -74,6 +82,7 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
     education: (education.data ?? []) as PortfolioAdminData['education'],
     testimonials: (testimonials.data ?? []) as PortfolioAdminData['testimonials'],
     volunteering: (volunteering.data ?? []) as PortfolioAdminData['volunteering'],
+    cv,
   }
 }
 

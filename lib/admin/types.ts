@@ -20,6 +20,7 @@ export type SkillRow = {
   name: string
   level: number | null
   sort_order: number | null
+  description: string | null
 }
 
 export type ExperienceRow = {
@@ -49,6 +50,7 @@ export type BlogPostRow = {
   created_at?: string
   title: string
   excerpt: string | null
+  content: string | null
   slug: string
   category: string | null
   read_time: string | null
@@ -111,6 +113,13 @@ export type VolunteeringRow = {
   sort_order: number | null
 }
 
+export type CvRow = {
+  id: string
+  latex_content: string | null
+  pdf_url: string | null
+  updated_at?: string | null
+}
+
 export type PortfolioAdminData = {
   projects: ProjectRow[]
   skills: SkillRow[]
@@ -121,4 +130,5 @@ export type PortfolioAdminData = {
   education: EducationRow[]
   testimonials: TestimonialRow[]
   volunteering: VolunteeringRow[]
+  cv: CvRow | null
 }

@@ -1,27 +1,27 @@
-"use client"
+'use client'
 
-import { Network } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { motion } from "framer-motion"
-import { useInView } from "framer-motion"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import type { SkillRow } from "@/lib/admin/types"
-import { portfolioLucideIcon } from "@/lib/portfolio-lucide"
+import * as TooltipPrimitive from '@radix-ui/react-tooltip'
+import { Network } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { motion, useInView } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { SkillRow } from '@/lib/admin/types'
+import { portfolioLucideIcon } from '@/lib/portfolio-lucide'
+import { cn } from '@/lib/utils'
 
 type CategoryView = {
   title: string
   icon: LucideIcon
-  skills: { name: string; level: number }[]
+  skills: { name: string; description: string | null }[]
 }
 
 function groupSkillsFromRows(rows: SkillRow[]): CategoryView[] {
   const titles: string[] = []
   const map = new Map<
     string,
-    { iconName: string | null; skills: { name: string; level: number }[] }
+    { iconName: string | null; skills: { name: string; description: string | null }[] }
   >()
 
   for (const row of rows) {
@@ -38,10 +38,10 @@ function groupSkillsFromRows(rows: SkillRow[]): CategoryView[] {
     }
     g.skills.push({
       name: row.name,
-      level:
-        typeof row.level === "number"
-          ? Math.min(100, Math.max(0, row.level))
-          : 0,
+      description:
+        typeof row.description === 'string' && row.description.trim()
+          ? row.description.trim()
+          : null,
     })
   }
 
@@ -52,41 +52,9 @@ function groupSkillsFromRows(rows: SkillRow[]): CategoryView[] {
   })
 }
 
-function AnimatedProgressBar({
-  level,
-  delay = 0,
-}: {
-  level: number
-  delay?: number
-}) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
-  const [width, setWidth] = useState(0)
-
-  useEffect(() => {
-    if (isInView) {
-      const timer = setTimeout(() => {
-        setWidth(level)
-      }, delay * 100)
-      return () => clearTimeout(timer)
-    }
-  }, [isInView, level, delay])
-
-  return (
-    <div ref={ref} className="h-2 overflow-hidden rounded-full bg-secondary">
-      <motion.div
-        className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-        initial={{ width: 0 }}
-        animate={{ width: `${width}%` }}
-        transition={{ duration: 1, ease: "easeOut" }}
-      />
-    </div>
-  )
-}
-
 export function Skills() {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const headerInView = useInView(ref, { once: true, margin: '-100px' })
   const [loading, setLoading] = useState(true)
   const [dbSkills, setDbSkills] = useState<SkillRow[]>([])
 
@@ -95,9 +63,9 @@ export function Skills() {
     ;(async () => {
       try {
         const { data, error } = await supabase
-          .from("skills")
-          .select("*")
-          .order("sort_order", { ascending: true })
+          .from('skills')
+          .select('*')
+          .order('sort_order', { ascending: true })
         if (cancelled) return
         setDbSkills(!error && data?.length ? (data as SkillRow[]) : [])
       } catch {
@@ -118,9 +86,9 @@ export function Skills() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          animate={headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center"
+          className="mb-14 text-center"
         >
           <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -128,67 +96,106 @@ export function Skills() {
             </span>
           </h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Technical competencies and professional skills developed through
-            education and hands-on experience.
+            Technical competencies grouped by focus area. Hover a skill for a
+            short description.
           </p>
         </motion.div>
 
         {!loading && !categories.length ? (
-          <p className="text-center text-sm text-muted-foreground">No skills listed yet.</p>
+          <p className="text-center text-sm text-muted-foreground">
+            No skills listed yet.
+          </p>
         ) : null}
 
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
+          <div className="grid gap-8 md:grid-cols-2">
+            {[0, 1].map((i) => (
               <Skeleton
                 key={`sk-${i}`}
-                className="min-h-[360px] rounded-xl border border-border"
+                className="min-h-[180px] rounded-xl border border-border"
               />
             ))}
           </div>
         ) : categories.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category, index) => {
-              const CatIcon = category.icon
-              return (
-                <motion.div
-                  key={category.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.15 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -5 }}
-                >
-                  <Card className="h-full border-border bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center gap-3 text-lg">
-                        <motion.div
-                          className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"
-                          whileHover={{ rotate: 5, scale: 1.1 }}
-                        >
-                          <CatIcon className="h-5 w-5 text-primary" />
-                        </motion.div>
+          <TooltipPrimitive.Provider delayDuration={200} skipDelayDuration={0}>
+            <div className="flex flex-col gap-12 lg:gap-14">
+              {categories.map((category, index) => {
+                const CatIcon = category.icon
+                return (
+                  <motion.div
+                    key={category.title}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: index * 0.08 }}
+                    viewport={{ once: true }}
+                  >
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <CatIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
                         {category.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {category.skills.map((skill, skillIndex) => (
-                        <div key={`${skill.name}-${skillIndex}`}>
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm text-foreground">{skill.name}</span>
-                            <span className="text-xs text-muted-foreground">{skill.level}%</span>
-                          </div>
-                          <AnimatedProgressBar level={skill.level} delay={skillIndex} />
-                        </div>
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {category.skills.map((skill) => (
+                        <SkillBadge
+                          key={`${category.title}-${skill.name}`}
+                          name={skill.name}
+                          description={skill.description}
+                        />
                       ))}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )
-            })}
-          </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </TooltipPrimitive.Provider>
         ) : null}
       </div>
     </section>
+  )
+}
+
+function SkillBadge({
+  name,
+  description,
+}: {
+  name: string
+  description: string | null
+}) {
+  const pill = (
+    <span
+      className={cn(
+        'inline-flex cursor-default select-none rounded-full border border-border',
+        'bg-secondary/55 px-3 py-1.5 text-sm text-foreground',
+        'transition-[background-color,border-color,transform] duration-150',
+        description &&
+          'hover:-translate-y-0.5 hover:border-primary/35 hover:bg-secondary',
+      )}
+    >
+      {name}
+    </span>
+  )
+
+  if (!description) return pill
+
+  return (
+    <TooltipPrimitive.Root>
+      <TooltipPrimitive.Trigger asChild>{pill}</TooltipPrimitive.Trigger>
+      <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Content
+          side="top"
+          sideOffset={8}
+          className={cn(
+            'z-[80] max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2',
+            'text-[11px] leading-snug text-zinc-100 shadow-xl',
+            'animate-in fade-in-0 zoom-in-95 duration-150',
+          )}
+        >
+          {description}
+        </TooltipPrimitive.Content>
+      </TooltipPrimitive.Portal>
+    </TooltipPrimitive.Root>
   )
 }

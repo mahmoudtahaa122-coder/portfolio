@@ -1,38 +1,20 @@
 import { Metadata } from "next"
-import { BlogPostLayout } from "@/components/blog/blog-post-layout"
+import { BlogPostPage } from "@/components/blog/blog-post-page"
 
 export const metadata: Metadata = {
   title: "Understanding OSPF: A Complete Guide for CCNA Students | Mahmoud Taha",
   description: "Deep dive into OSPF routing protocol, covering areas, LSAs, neighbor relationships, and practical configuration examples on Cisco devices.",
 }
 
-const relatedPosts = [
-  {
-    title: "Network Automation with Python: Building a Cisco Device Scanner",
-    href: "/blog/network-automation-python",
-    category: "Automation",
-  },
-  {
-    title: "Securing Your Network: ACL Best Practices",
-    href: "/blog/acl-best-practices",
-    category: "Security",
-  },
-  {
-    title: "Building a Subnet Calculator CLI Tool in Python",
-    href: "/blog/subnet-calculator-python",
-    category: "Development",
-  },
-]
-
 export default function OSPFBlogPost() {
   return (
-    <BlogPostLayout
-      title="Understanding OSPF: A Complete Guide for CCNA Students"
-      category="Networking"
-      date="March 2026"
-      readTime="12 min read"
-      tags={["OSPF", "CCNA", "Routing"]}
-      relatedPosts={relatedPosts}
+    <BlogPostPage
+      slug="understanding-ospf"
+      fallbackTitle="Understanding OSPF: A Complete Guide for CCNA Students"
+      fallbackCategory="Networking"
+      fallbackDate="March 2026"
+      fallbackReadTime="12 min read"
+      fallbackTags={["OSPF", "CCNA", "Routing"]}
     >
       <p>
         Open Shortest Path First (OSPF) is one of the most widely used interior gateway protocols (IGPs) in enterprise networks. As a CCNA candidate, understanding OSPF is crucial for both the exam and real-world network engineering. In this comprehensive guide, we&apos;ll explore everything you need to know about OSPF.
@@ -261,6 +243,6 @@ Router# show ip ospf`}</code></pre>
       <p>
         OSPF is a powerful and flexible routing protocol that forms the backbone of many enterprise networks. By understanding its hierarchical design, LSA types, and neighbor relationships, you&apos;ll be well-prepared for both the CCNA exam and real-world network engineering challenges. Practice configuring OSPF in lab environments and use the verification commands to validate your configurations.
       </p>
-    </BlogPostLayout>
+    </BlogPostPage>
   )
 }

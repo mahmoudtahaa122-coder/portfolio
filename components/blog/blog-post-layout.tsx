@@ -1,24 +1,28 @@
-"use client"
+'use client'
 
-import { motion } from "framer-motion"
-import Link from "next/link"
-import { ArrowLeft, Calendar, Clock, Linkedin, Twitter, Link2, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  Check,
+  Clock,
+  Link2,
+  Loader2,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
-interface BlogPostLayoutProps {
+export type BlogPostLayoutProps = {
   title: string
   category: string
   date: string
   readTime: string
   tags: string[]
+  prev: { title: string; href: string } | null
+  next: { title: string; href: string } | null
+  loading?: boolean
   children: React.ReactNode
-  relatedPosts: {
-    title: string
-    href: string
-    category: string
-  }[]
 }
 
 export function BlogPostLayout({
@@ -27,159 +31,157 @@ export function BlogPostLayout({
   date,
   readTime,
   tags,
+  prev,
+  next,
+  loading = false,
   children,
-  relatedPosts,
 }: BlogPostLayoutProps) {
   const [copied, setCopied] = useState(false)
+  const [progress, setProgress] = useState(0)
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.documentElement
+      const total = el.scrollHeight - el.clientHeight
+      const p = total > 0 ? Math.min(100, Math.max(0, (el.scrollTop / total) * 100)) : 0
+      setProgress(p)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
-  const shareOnLinkedIn = () => {
-    const url = encodeURIComponent(window.location.href)
-    const text = encodeURIComponent(title)
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank")
-  }
-
-  const shareOnTwitter = () => {
-    const url = encodeURIComponent(window.location.href)
-    const text = encodeURIComponent(title)
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, "_blank")
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* ignore */
+    }
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="fixed top-0 left-0 right-0 z-[60] h-1 bg-border/40">
+        <div
+          className="h-full bg-primary transition-[width] duration-150 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <header className="fixed top-1 left-0 right-0 z-50 border-b border-border bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[800px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/#blog"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Portfolio
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Back to Portfolio</span>
+            <span className="sm:hidden">Back</span>
           </Link>
-          
-          {/* Share buttons */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={shareOnLinkedIn}
-              className="h-9 w-9"
-              aria-label="Share on LinkedIn"
-            >
-              <Linkedin className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={shareOnTwitter}
-              className="h-9 w-9"
-              aria-label="Share on X"
-            >
-              <Twitter className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCopyLink}
-              className="h-9 w-9"
-              aria-label="Copy link"
-            >
-              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Link2 className="h-4 w-4" />}
-            </Button>
-          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="pt-24 pb-20">
-        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Article Header */}
-          <motion.header
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-12"
-          >
-            <span className="inline-block px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full mb-4">
-              {category}
-            </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight text-balance">
+      <main className="mx-auto max-w-[800px] px-4 pb-20 pt-28 sm:px-6 lg:px-8">
+        <article>
+          <header className="mb-8 space-y-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <span className="inline-flex w-fit rounded-full bg-primary/15 px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary">
+                {category}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-2 border-border"
+                onClick={() => void handleCopyLink()}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                {copied ? 'Copied' : 'Share link'}
+              </Button>
+            </div>
+
+            <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
               {title}
             </h1>
-            
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4" />
+
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 shrink-0" />
                 {date}
               </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-4 w-4 shrink-0" />
                 {readTime}
               </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 text-xs bg-secondary text-secondary-foreground rounded-full"
-                >
-                  {tag}
+              {loading ? (
+                <span className="inline-flex items-center gap-1.5 text-xs">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Updating…
                 </span>
-              ))}
+              ) : null}
             </div>
-          </motion.header>
 
-          {/* Article Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="prose prose-invert prose-lg max-w-none
-              prose-headings:text-foreground prose-headings:font-bold
-              prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6
-              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-muted-foreground prose-p:leading-relaxed
-              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-strong:text-foreground
-              prose-code:text-primary prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-              prose-pre:bg-card prose-pre:border prose-pre:border-border prose-pre:rounded-lg
-              prose-ul:text-muted-foreground prose-ol:text-muted-foreground
-              prose-li:marker:text-primary
-              prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground prose-blockquote:italic"
-          >
-            {children}
-          </motion.div>
+            {tags?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, index) => (
+                  <span
+                    key={`${tag}-${index}`}
+                    className="rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </header>
 
-          {/* Related Articles */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-20 pt-12 border-t border-border"
-          >
-            <h2 className="text-2xl font-bold mb-8">Related Articles</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {relatedPosts.map((post, index) => (
-                <Link key={index} href={post.href}>
-                  <Card className="bg-card border-border hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/5 group h-full">
-                    <CardHeader className="pb-2">
-                      <span className="text-xs text-primary mb-2">{post.category}</span>
-                      <CardTitle className="text-base group-hover:text-primary transition-colors leading-snug">
-                        {post.title}
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
+          <div className="mb-12 border-b border-border" />
+
+          <div className="max-w-none">{children}</div>
+
+          <nav className="mt-16 grid gap-6 border-t border-border pt-12 sm:grid-cols-2">
+            <div>
+              {prev ? (
+                <Link
+                  href={prev.href}
+                  className="group flex flex-col gap-1 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 hover:bg-card"
+                >
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Previous
+                  </span>
+                  <span className="flex items-center gap-2 font-medium text-foreground group-hover:text-primary">
+                    <ArrowLeft className="h-4 w-4 shrink-0" />
+                    <span className="line-clamp-2">{prev.title}</span>
+                  </span>
                 </Link>
-              ))}
+              ) : (
+                <div />
+              )}
             </div>
-          </motion.section>
+            <div className="sm:text-right">
+              {next ? (
+                <Link
+                  href={next.href}
+                  className="group flex flex-col gap-1 rounded-lg border border-border bg-card/50 p-4 transition-colors hover:border-primary/40 hover:bg-card sm:ml-auto sm:max-w-full"
+                >
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Next
+                  </span>
+                  <span className="flex items-center justify-end gap-2 font-medium text-foreground group-hover:text-primary sm:flex-row-reverse">
+                    <ArrowRight className="h-4 w-4 shrink-0" />
+                    <span className="line-clamp-2 text-left sm:text-right">{next.title}</span>
+                  </span>
+                </Link>
+              ) : (
+                <div />
+              )}
+            </div>
+          </nav>
         </article>
       </main>
     </div>

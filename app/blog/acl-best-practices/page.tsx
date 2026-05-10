@@ -1,38 +1,20 @@
 import { Metadata } from "next"
-import { BlogPostLayout } from "@/components/blog/blog-post-layout"
+import { BlogPostPage } from "@/components/blog/blog-post-page"
 
 export const metadata: Metadata = {
   title: "Securing Your Network: ACL Best Practices | Mahmoud Taha",
   description: "Comprehensive guide to implementing Access Control Lists for enterprise network security. Covers standard, extended, and named ACLs.",
 }
 
-const relatedPosts = [
-  {
-    title: "Understanding OSPF: A Complete Guide for CCNA Students",
-    href: "/blog/understanding-ospf",
-    category: "Networking",
-  },
-  {
-    title: "Network Automation with Python: Building a Cisco Device Scanner",
-    href: "/blog/network-automation-python",
-    category: "Automation",
-  },
-  {
-    title: "Building a Subnet Calculator CLI Tool in Python",
-    href: "/blog/subnet-calculator-python",
-    category: "Development",
-  },
-]
-
 export default function ACLBlogPost() {
   return (
-    <BlogPostLayout
-      title="Securing Your Network: ACL Best Practices"
-      category="Security"
-      date="January 2026"
-      readTime="10 min read"
-      tags={["Security", "ACLs", "Cisco"]}
-      relatedPosts={relatedPosts}
+    <BlogPostPage
+      slug="acl-best-practices"
+      fallbackTitle="Securing Your Network: ACL Best Practices"
+      fallbackCategory="Security"
+      fallbackDate="January 2026"
+      fallbackReadTime="10 min read"
+      fallbackTags={["Security", "ACLs", "Cisco"]}
     >
       <p>
         Access Control Lists (ACLs) are one of the fundamental building blocks of network security. Whether you&apos;re filtering traffic, implementing security policies, or controlling access to network resources, understanding ACLs is essential for any network engineer. In this guide, we&apos;ll explore ACL types, best practices, and real-world implementation strategies.
@@ -334,6 +316,6 @@ Router# clear access-list counters`}</code></pre>
           Pro Tip: Always keep a backup of your ACL configurations and test changes during maintenance windows. A misconfigured ACL can quickly lock you out of network devices!
         </p>
       </blockquote>
-    </BlogPostLayout>
+    </BlogPostPage>
   )
 }

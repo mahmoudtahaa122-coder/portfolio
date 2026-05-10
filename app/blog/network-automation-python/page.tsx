@@ -1,38 +1,20 @@
 import { Metadata } from "next"
-import { BlogPostLayout } from "@/components/blog/blog-post-layout"
+import { BlogPostPage } from "@/components/blog/blog-post-page"
 
 export const metadata: Metadata = {
   title: "Network Automation with Python: Building a Cisco Device Scanner | Mahmoud Taha",
   description: "Learn how to automate network device management using Python and Netmiko. Includes code examples for SSH connections and data extraction.",
 }
 
-const relatedPosts = [
-  {
-    title: "Understanding OSPF: A Complete Guide for CCNA Students",
-    href: "/blog/understanding-ospf",
-    category: "Networking",
-  },
-  {
-    title: "Securing Your Network: ACL Best Practices",
-    href: "/blog/acl-best-practices",
-    category: "Security",
-  },
-  {
-    title: "Building a Subnet Calculator CLI Tool in Python",
-    href: "/blog/subnet-calculator-python",
-    category: "Development",
-  },
-]
-
 export default function NetworkAutomationBlogPost() {
   return (
-    <BlogPostLayout
-      title="Network Automation with Python: Building a Cisco Device Scanner"
-      category="Automation"
-      date="February 2026"
-      readTime="15 min read"
-      tags={["Python", "Netmiko", "Automation"]}
-      relatedPosts={relatedPosts}
+    <BlogPostPage
+      slug="network-automation-python"
+      fallbackTitle="Network Automation with Python: Building a Cisco Device Scanner"
+      fallbackCategory="Automation"
+      fallbackDate="February 2026"
+      fallbackReadTime="15 min read"
+      fallbackTags={["Python", "Netmiko", "Automation"]}
     >
       <p>
         Network automation has become an essential skill for modern network engineers. Gone are the days of manually configuring hundreds of devices one by one. In this tutorial, we&apos;ll build a practical Cisco Device Info Scanner using Python and Netmiko that can automatically connect to multiple devices, retrieve information, and export it to CSV.
@@ -453,6 +435,6 @@ python cisco_scanner.py
       <p>
         Check out the full project on my <a href="https://github.com/mahmoud-taha-dev/Cisco_Device_info_scanner" target="_blank" rel="noopener noreferrer">GitHub repository</a> for additional features and updates.
       </p>
-    </BlogPostLayout>
+    </BlogPostPage>
   )
 }
