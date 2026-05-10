@@ -8,82 +8,7 @@ import { useInView } from "framer-motion"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import type { ExperienceRow } from "@/lib/admin/types"
-
-const FALLBACK_EXPERIENCES: Omit<ExperienceRow, "id">[] = [
-  {
-    title: "Technical Instructor",
-    company: "iSchool",
-    location: "Egypt",
-    period: "Nov 2024 – Dec 2024 | Mar 2026 – Present",
-    description:
-      "Teaching programming fundamentals using Python, Mblock, and Scratch. Applied modern teaching strategies including project-based learning and interactive sessions.",
-    type: "work",
-    sort_order: 0,
-  },
-  {
-    title: "Military Service — Electronic Warfare Corps",
-    company: "Egyptian Armed Forces",
-    location: "Egypt",
-    period: "Mar 2025 – Mar 2026",
-    description:
-      "Served in the Egyptian Army as part of mandatory national service, assigned to the Electronic Warfare branch.",
-    type: "military",
-    sort_order: 1,
-  },
-  {
-    title: "Network VAS Engineer Intern",
-    company: "Telecom Egypt (WE)",
-    location: "Egypt",
-    period: "Aug 2024 – Oct 2024",
-    description:
-      "Worked hands-on with Cisco-based ISP infrastructure including BNG, AAA, DNS, and DPI systems. Diagnosed and resolved live network faults across ISP layers.",
-    type: "internship",
-    sort_order: 2,
-  },
-  {
-    title: "Network Administrator Intern",
-    company: "Ministry of Communications (DEPI)",
-    location: "Egypt",
-    period: "Mar 2024 – Oct 2024",
-    description:
-      "Configured and troubleshot switching and routing protocols (VLANs, STP, OSPF) alongside TCP/IP, DNS, and DHCP in structured lab environments.",
-    type: "internship",
-    sort_order: 3,
-  },
-  {
-    title: "Customer Support → Project Manager",
-    company: "E-Alim Institute",
-    location: "Egypt",
-    period: "Jul 2022 – Oct 2022 | Jul 2023 – Sep 2023",
-    description:
-      "Supported 25+ customers daily, promoted to Project Manager. Launched a 70+ resource digital library used by 700+ users monthly. Reduced operational errors by 30%.",
-    type: "work",
-    sort_order: 4,
-  },
-  {
-    title: "Data Center Training",
-    company: "Telecom Egypt (WE)",
-    location: "Egypt",
-    period: "Aug 2022",
-    description:
-      "Assisted in managing data center networking equipment. Studied high-availability design principles including redundancy and failover.",
-    type: "training",
-    sort_order: 5,
-  },
-]
-
-const SUMMARY_BODY =
-  "Network Engineer graduate from Helwan University with hands-on experience in live Cisco-based ISP environments at Telecom Egypt and the Ministry of Communications. Skilled in TCP/IP, DNS, DHCP, switching, routing, and ISP architecture (BNG, AAA, DPI). Cisco Networking Academy certified with practical automation skills in Python and a passion for network operations and infrastructure. Familiar with Windows Server administration at MCSA level."
-
-const education = {
-  degree: "Bachelor's Degree in Engineering",
-  field: "Communication, Electronics and Computer",
-  school: "Helwan University",
-  period: "Aug 2019 – Aug 2024",
-  location: "Egypt",
-  achievement: "Graduation Project Grade: Excellent",
-}
+import type { EducationRow, ExperienceRow } from "@/lib/admin/types"
 
 function AnimatedSection({
   children,
@@ -112,27 +37,45 @@ export function About() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [loading, setLoading] = useState(true)
-  const [dbExperience, setDbExperience] = useState<ExperienceRow[]>([])
+  const [experiences, setExperiences] = useState<ExperienceRow[]>([])
+  const [educationRows, setEducationRows] = useState<EducationRow[]>([])
+  const [aboutBio, setAboutBio] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const { data, error } = await supabase
-          .from("experience")
-          .select("*")
-          .order("sort_order", { ascending: true })
-        if (
-          cancelled ||
-          error ||
-          !data?.length
-        ) {
-          setDbExperience([])
-        } else {
-          setDbExperience(data as ExperienceRow[])
-        }
+        const [expRes, eduRes, profRes] = await Promise.all([
+          supabase
+            .from("experience")
+            .select("*")
+            .order("sort_order", { ascending: true }),
+          supabase
+            .from("education")
+            .select("*")
+            .order("sort_order", { ascending: true }),
+          supabase.from("profile").select("about_bio").limit(1).maybeSingle(),
+        ])
+        if (cancelled) return
+        setExperiences(
+          !expRes.error && expRes.data?.length ? (expRes.data as ExperienceRow[]) : [],
+        )
+        setEducationRows(
+          !eduRes.error && eduRes.data?.length ? (eduRes.data as EducationRow[]) : [],
+        )
+        const bio =
+          profRes.data &&
+          typeof (profRes.data as { about_bio?: string | null }).about_bio === "string"
+            ? String((profRes.data as { about_bio: string | null }).about_bio).trim() ||
+              null
+            : null
+        setAboutBio(bio || null)
       } catch {
-        if (!cancelled) setDbExperience([])
+        if (!cancelled) {
+          setExperiences([])
+          setEducationRows([])
+          setAboutBio(null)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -142,13 +85,7 @@ export function About() {
     }
   }, [])
 
-  const experiences = useMemo(() => {
-    if (dbExperience.length) return dbExperience
-    return FALLBACK_EXPERIENCES.map((exp, idx) => ({
-      ...exp,
-      id: `fallback-${idx}`,
-    })) as ExperienceRow[]
-  }, [dbExperience])
+  const bioText = useMemo(() => aboutBio ?? "", [aboutBio])
 
   return (
     <section id="about" className="py-20 sm:py-32" ref={ref}>
@@ -170,50 +107,87 @@ export function About() {
           </p>
         </motion.div>
 
-        <AnimatedSection className="mb-12">
-          <Card className="border-border bg-card transition-colors hover:border-primary/30">
-            <CardContent className="p-6 sm:p-8">
-              <p className="text-lg leading-relaxed text-foreground">{SUMMARY_BODY}</p>
-            </CardContent>
-          </Card>
-        </AnimatedSection>
+        {loading ? (
+          <div className="mb-12 space-y-4">
+            <Skeleton className="h-48 w-full rounded-xl border border-border" />
+          </div>
+        ) : bioText ? (
+          <AnimatedSection className="mb-12">
+            <Card className="border-border bg-card transition-colors hover:border-primary/30">
+              <CardContent className="p-6 sm:p-8">
+                <p className="text-lg leading-relaxed text-foreground">{bioText}</p>
+              </CardContent>
+            </Card>
+          </AnimatedSection>
+        ) : null}
 
-        <div className="grid gap-12 lg:grid-cols-2">
+        <div
+          className={`grid gap-12 ${
+            educationRows.length && experiences.length ? "lg:grid-cols-2" : ""
+          }`}
+        >
           <AnimatedSection>
             <h3 className="mb-6 flex items-center gap-2 text-xl font-semibold">
               <GraduationCap className="h-5 w-5 text-primary" />
               Education
             </h3>
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <Card className="border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <GraduationCap className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-foreground">{education.degree}</h4>
-                      <p className="font-medium text-primary">{education.field}</p>
-                      <p className="mt-1 text-muted-foreground">{education.school}</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {education.period}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {education.location}
-                        </span>
-                      </div>
-                      <p className="mt-3 font-medium text-accent">{education.achievement}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-40 w-full rounded-xl border border-border" />
+              </div>
+            ) : educationRows.length ? (
+              <div className="space-y-4">
+                {educationRows.map((ed) => (
+                  <motion.div
+                    key={ed.id}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <GraduationCap className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-foreground">
+                              {ed.degree ?? "—"}
+                            </h4>
+                            {ed.field ? (
+                              <p className="font-medium text-primary">{ed.field}</p>
+                            ) : null}
+                            {ed.institution ? (
+                              <p className="mt-1 text-muted-foreground">
+                                {ed.institution}
+                              </p>
+                            ) : null}
+                            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                              {ed.period ? (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-4 w-4" />
+                                  {ed.period}
+                                </span>
+                              ) : null}
+                              {ed.location ? (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-4 w-4" />
+                                  {ed.location}
+                                </span>
+                              ) : null}
+                            </div>
+                            {ed.grade ? (
+                              <p className="mt-3 font-medium text-accent">{ed.grade}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No education entries yet.</p>
+            )}
           </AnimatedSection>
 
           <AnimatedSection>
@@ -231,9 +205,10 @@ export function About() {
                     />
                   ))}
                 </>
-              ) : (
+              ) : experiences.length ? (
                 experiences.map((exp, index) => {
                   const t = String(exp.type ?? "work").toLowerCase()
+                  const tagList = Array.isArray(exp.tags) ? exp.tags : []
                   return (
                     <motion.div
                       key={exp.id}
@@ -276,9 +251,23 @@ export function About() {
                               <p className="mt-1 text-xs text-muted-foreground">
                                 {exp.period ?? ""}
                               </p>
-                              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                                {exp.description ?? ""}
-                              </p>
+                              {exp.description ? (
+                                <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                                  {exp.description}
+                                </p>
+                              ) : null}
+                              {tagList.length ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {tagList.map((tag, ti) => (
+                                    <span
+                                      key={`${exp.id}-t-${ti}`}
+                                      className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
                           </div>
                         </CardContent>
@@ -286,6 +275,10 @@ export function About() {
                     </motion.div>
                   )
                 })
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No experience entries yet.
+                </p>
               )}
             </div>
           </AnimatedSection>

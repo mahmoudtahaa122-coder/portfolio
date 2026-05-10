@@ -8,28 +8,7 @@ import { motion } from "framer-motion"
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import type { ProfileRow } from "@/lib/admin/types"
-
-const DEFAULT_AVAILABILITY = "Available for opportunities"
-const DEFAULT_DISPLAY_NAME = "Mahmoud Taha"
-const DEFAULT_INTRO =
-  "Network Engineer graduate with hands-on experience in live Cisco-based ISP environments. Skilled in TCP/IP, switching, routing, and ISP architecture with practical automation skills in Python."
-const DEFAULT_ROLES = [
-  "Network Engineer",
-  "Python Developer",
-  "Cisco Certified",
-  "Network Automation",
-]
-
-const DEFAULT_SOCIAL = {
-  github: "https://github.com/mahmoudtahaa111",
-  linkedin: "https://linkedin.com/in/mahmoud-taha-salama",
-  email: "Mahmoudtahaa111@gmail.com",
-}
-
-function normalizeRoles(raw: ProfileRow["typewriter_roles"]): string[] {
-  if (!Array.isArray(raw)) return []
-  return raw.filter((x) => typeof x === "string" && x.trim().length > 0)
-}
+import { asStringArray } from "@/lib/portfolio-fields"
 
 function ParticleNetwork() {
   const [particles, setParticles] = useState<
@@ -181,43 +160,24 @@ export function Hero() {
     }
   }, [])
 
-  const availabilityBadge = dbProfile?.availability_badge ?? DEFAULT_AVAILABILITY
-  const displayName = dbProfile?.display_name ?? DEFAULT_DISPLAY_NAME
-  const intro =
-    dbProfile?.hero_intro && dbProfile.hero_intro.trim()
-      ? dbProfile.hero_intro
-      : DEFAULT_INTRO
+  const availabilityBadge = dbProfile?.availability_badge?.trim() ?? ""
+  const displayName = dbProfile?.display_name?.trim() ?? ""
+  const titleLine = dbProfile?.title?.trim() ?? ""
+  const intro = dbProfile?.hero_intro?.trim() ?? ""
 
-  const typewriterTexts = useMemo(() => {
-    const fromDb = normalizeRoles(dbProfile?.typewriter_roles ?? null)
-    return fromDb.length ? fromDb : DEFAULT_ROLES
-  }, [dbProfile])
-
+  const typewriterTexts = useMemo(() => asStringArray(dbProfile?.typewriter_roles), [dbProfile])
   const typewriterText = useTypewriter(typewriterTexts, 100, 50, 2000)
 
-  const socialLinks = useMemo(
-    () => [
-      {
-        href: dbProfile?.github_url?.trim() || DEFAULT_SOCIAL.github,
-        icon: Github,
-        label: "GitHub",
-      },
-      {
-        href: dbProfile?.linkedin_url?.trim() || DEFAULT_SOCIAL.linkedin,
-        icon: Linkedin,
-        label: "LinkedIn",
-      },
-      {
-        href:
-          dbProfile?.email?.trim()
-            ? `mailto:${dbProfile.email.trim()}`
-            : `mailto:${DEFAULT_SOCIAL.email}`,
-        icon: Mail,
-        label: "Email",
-      },
-    ],
-    [dbProfile?.github_url, dbProfile?.linkedin_url, dbProfile?.email],
-  )
+  const socialLinks = useMemo(() => {
+    const out: Array<{ href: string; icon: typeof Github; label: string }> = []
+    const gh = dbProfile?.github_url?.trim()
+    const li = dbProfile?.linkedin_url?.trim()
+    const mail = dbProfile?.email?.trim()
+    if (gh) out.push({ href: gh, icon: Github, label: "GitHub" })
+    if (li) out.push({ href: li, icon: Linkedin, label: "LinkedIn" })
+    if (mail) out.push({ href: `mailto:${mail}`, icon: Mail, label: "Email" })
+    return out
+  }, [dbProfile?.github_url, dbProfile?.linkedin_url, dbProfile?.email])
 
   return (
     <section
@@ -264,8 +224,8 @@ export function Hero() {
               <Skeleton className="h-10 w-64" />
               <Skeleton className="mx-auto mb-12 h-[4.75rem] w-full max-w-2xl" />
               <div className="mb-16 flex flex-col gap-4 sm:flex-row">
-                <Skeleton className="h-11 w-40 mx-auto sm:mx-0" />
-                <Skeleton className="h-11 w-40 mx-auto sm:mx-0" />
+                <Skeleton className="mx-auto h-11 w-40 sm:mx-0" />
+                <Skeleton className="mx-auto h-11 w-40 sm:mx-0" />
               </div>
               <div className="flex gap-8">
                 <Skeleton className="h-10 w-10 rounded-full" />
@@ -275,53 +235,76 @@ export function Hero() {
             </div>
           ) : (
             <>
+              {availabilityBadge ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2"
+                >
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
+                  <code className="font-mono text-sm text-muted-foreground">
+                    {availabilityBadge}
+                  </code>
+                </motion.div>
+              ) : null}
+
+              {displayName ? (
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+                >
+                  <span className="text-foreground">Hi, I&apos;m </span>
+                  <span className="animate-gradient bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent">
+                    {displayName}
+                  </span>
+                </motion.h1>
+              ) : (
+                <div className="mb-6 min-h-[3rem]" aria-hidden />
+              )}
+
+              {titleLine ? (
+                <motion.p
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.15 }}
+                  className="mx-auto mb-4 max-w-2xl text-lg text-muted-foreground"
+                >
+                  {titleLine}
+                </motion.p>
+              ) : null}
+
+              {typewriterTexts.length ? (
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mb-8 min-h-10 text-xl font-medium text-muted-foreground sm:min-h-11 sm:text-2xl md:text-3xl"
+                >
+                  <span className="text-primary">{typewriterText}</span>
+                  <span className="animate-pulse">|</span>
+                </motion.h2>
+              ) : (
+                <div className="mb-8 min-h-[2.5rem]" aria-hidden />
+              )}
+
+              {intro ? (
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-muted-foreground"
+                >
+                  {intro}
+                </motion.p>
+              ) : null}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2"
-              >
-                <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
-                <code className="font-mono text-sm text-muted-foreground">
-                  {availabilityBadge}
-                </code>
-              </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
-              >
-                <span className="text-foreground">Hi, I&apos;m </span>
-                <span className="animate-gradient bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent">
-                  {displayName}
-                </span>
-              </motion.h1>
-
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="mb-8 h-10 text-xl font-medium text-muted-foreground sm:h-11 sm:text-2xl md:text-3xl"
-              >
-                <span className="text-primary">{typewriterText}</span>
-                <span className="animate-pulse">|</span>
-              </motion.h2>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-muted-foreground"
-              >
-                {intro}
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ duration: 0.6, delay: 0.35 }}
                 className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
               >
                 <Button
@@ -347,36 +330,38 @@ export function Hero() {
                 </Button>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.5 }}
-                className="flex items-center justify-center gap-6"
-              >
-                {socialLinks.map((social) => (
-                  <motion.div
-                    key={social.label}
-                    whileHover={{ scale: 1.2, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Link
-                      href={social.href}
-                      target={
-                        social.href.startsWith("mailto") ? undefined : "_blank"
-                      }
-                      rel={
-                        social.href.startsWith("mailto")
-                          ? undefined
-                          : "noopener noreferrer"
-                      }
-                      className="text-muted-foreground transition-colors hover:text-primary"
-                      aria-label={social.label}
+              {socialLinks.length ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                  className="flex items-center justify-center gap-6"
+                >
+                  {socialLinks.map((social) => (
+                    <motion.div
+                      key={social.label}
+                      whileHover={{ scale: 1.2, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <social.icon className="h-6 w-6" />
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
+                      <Link
+                        href={social.href}
+                        target={
+                          social.href.startsWith("mailto") ? undefined : "_blank"
+                        }
+                        rel={
+                          social.href.startsWith("mailto")
+                            ? undefined
+                            : "noopener noreferrer"
+                        }
+                        className="text-muted-foreground transition-colors hover:text-primary"
+                        aria-label={social.label}
+                      >
+                        <social.icon className="h-6 w-6" />
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : null}
             </>
           )}
         </div>

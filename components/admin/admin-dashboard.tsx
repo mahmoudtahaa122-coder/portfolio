@@ -18,10 +18,13 @@ import { usePortfolioAdmin } from '@/hooks/use-portfolio-admin'
 import type {
   BlogPostRow,
   CertificationRow,
+  EducationRow,
   ExperienceRow,
   ProfileRow,
   ProjectRow,
   SkillRow,
+  TestimonialRow,
+  VolunteeringRow,
 } from '@/lib/admin/types'
 
 import { Button } from '@/components/ui/button'
@@ -98,6 +101,32 @@ type DeleteTarget =
   | { kind: 'certification'; row: CertificationRow }
   | { kind: 'blog_post'; row: BlogPostRow }
   | { kind: 'profile'; row: ProfileRow }
+  | { kind: 'education'; row: EducationRow }
+  | { kind: 'testimonial'; row: TestimonialRow }
+  | { kind: 'volunteering'; row: VolunteeringRow }
+
+function tableForDelete(kind: DeleteTarget['kind']): string {
+  switch (kind) {
+    case 'project':
+      return 'projects'
+    case 'skill':
+      return 'skills'
+    case 'experience':
+      return 'experience'
+    case 'certification':
+      return 'certifications'
+    case 'blog_post':
+      return 'blog_posts'
+    case 'profile':
+      return 'profile'
+    case 'education':
+      return 'education'
+    case 'testimonial':
+      return 'testimonials'
+    case 'volunteering':
+      return 'volunteering'
+  }
+}
 
 export function AdminDashboard() {
   const { hydrated, loggedIn, data, refreshing, refresh, login, logout } =
@@ -128,18 +157,7 @@ export function AdminDashboard() {
     if (!pendingDelete) return
     const tgt = pendingDelete
     await wrapRefresh(async () => {
-      const table =
-        tgt.kind === 'blog_post'
-          ? 'blog_posts'
-          : tgt.kind === 'project'
-            ? 'projects'
-            : tgt.kind === 'skill'
-              ? 'skills'
-              : tgt.kind === 'experience'
-                ? 'experience'
-                : tgt.kind === 'certification'
-                  ? 'certifications'
-                  : 'profile'
+      const table = tableForDelete(tgt.kind)
       const { error } = await supabase.from(table).delete().eq('id', tgt.row.id)
       if (error) throw error
       setPendingDelete(null)
@@ -268,15 +286,26 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <Tabs defaultValue="projects" className="w-full gap-6">
+          <Tabs defaultValue="profile" className="w-full gap-6">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-secondary/70 p-1">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="skills">Skills</TabsTrigger>
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="certifications">Certifications</TabsTrigger>
+              <TabsTrigger value="education">Education</TabsTrigger>
               <TabsTrigger value="blog">Blog</TabsTrigger>
-              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="testimonials">Testimonials</TabsTrigger>
+              <TabsTrigger value="volunteering">Volunteering</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="profile" className="space-y-4">
+              <ProfilePanel
+                row={data.profile}
+                wrapRefresh={wrapRefresh}
+                onDelete={(row) => setPendingDelete({ kind: 'profile', row })}
+              />
+            </TabsContent>
 
             <TabsContent value="projects" className="space-y-4">
               <ProjectsPanel
@@ -312,6 +341,14 @@ export function AdminDashboard() {
               />
             </TabsContent>
 
+            <TabsContent value="education" className="space-y-4">
+              <EducationPanel
+                rows={data.education}
+                wrapRefresh={wrapRefresh}
+                onDelete={(row) => setPendingDelete({ kind: 'education', row })}
+              />
+            </TabsContent>
+
             <TabsContent value="blog" className="space-y-4">
               <BlogPanel
                 rows={data.blog_posts}
@@ -320,11 +357,19 @@ export function AdminDashboard() {
               />
             </TabsContent>
 
-            <TabsContent value="profile" className="space-y-4">
-              <ProfilePanel
-                row={data.profile}
+            <TabsContent value="testimonials" className="space-y-4">
+              <TestimonialsPanel
+                rows={data.testimonials}
                 wrapRefresh={wrapRefresh}
-                onDelete={(row) => setPendingDelete({ kind: 'profile', row })}
+                onDelete={(row) => setPendingDelete({ kind: 'testimonial', row })}
+              />
+            </TabsContent>
+
+            <TabsContent value="volunteering" className="space-y-4">
+              <VolunteeringPanel
+                rows={data.volunteering}
+                wrapRefresh={wrapRefresh}
+                onDelete={(row) => setPendingDelete({ kind: 'volunteering', row })}
               />
             </TabsContent>
           </Tabs>
@@ -382,6 +427,12 @@ function previewLabel(d: DeleteTarget): string {
       return d.row.title
     case 'profile':
       return d.row.display_name ?? 'Profile row'
+    case 'education':
+      return d.row.degree ?? d.row.institution ?? 'Education'
+    case 'testimonial':
+      return d.row.name
+    case 'volunteering':
+      return `${d.row.title} @ ${d.row.organization}`
   }
 }
 
@@ -819,6 +870,7 @@ function ExperiencePanel({
   const [description, setDescription] = React.useState('')
   const [type, setType] = React.useState('work')
   const [sortOrder, setSortOrder] = React.useState('0')
+  const [tagsCsv, setTagsCsv] = React.useState('')
 
   function openCreate() {
     setEditing(null)
@@ -827,6 +879,7 @@ function ExperiencePanel({
     setLocation('')
     setPeriod('')
     setDescription('')
+    setTagsCsv('')
     setType('work')
     setSortOrder(String(maxSortOrder(rows) + 1))
     setOpen(true)
@@ -839,6 +892,7 @@ function ExperiencePanel({
     setLocation(row.location ?? '')
     setPeriod(row.period ?? '')
     setDescription(row.description ?? '')
+    setTagsCsv(listToCsv(row.tags))
     setType(row.type ?? 'work')
     setSortOrder(String(row.sort_order ?? 0))
     setOpen(true)
@@ -852,6 +906,7 @@ function ExperiencePanel({
       period: period || null,
       description: description || null,
       type: type || null,
+      tags: parseCommaList(tagsCsv),
       sort_order: Number.parseInt(sortOrder, 10) || 0,
     }
     await wrapRefresh(async () => {
@@ -885,6 +940,7 @@ function ExperiencePanel({
                 <TableHead>Title</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -901,6 +957,9 @@ function ExperiencePanel({
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs capitalize">
                       {row.type ?? '—'}
                     </span>
+                  </TableCell>
+                  <TableCell className="max-w-[120px] truncate text-xs text-muted-foreground">
+                    {listToCsv(row.tags)}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
@@ -926,7 +985,7 @@ function ExperiencePanel({
               ))}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                     No experience entries.
                   </TableCell>
                 </TableRow>
@@ -999,6 +1058,15 @@ function ExperiencePanel({
                 rows={5}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                className="bg-secondary/40 border-border"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Tags (comma-separated)</Label>
+              <Input
+                value={tagsCsv}
+                placeholder="Networking, ISP, Automation"
+                onChange={(e) => setTagsCsv(e.target.value)}
                 className="bg-secondary/40 border-border"
               />
             </div>
@@ -1466,32 +1534,41 @@ function ProfilePanel({
   const [open, setOpen] = React.useState(false)
 
   const [displayName, setDisplayName] = React.useState('')
+  const [title, setTitle] = React.useState('')
   const [availability, setAvailability] = React.useState('')
   const [heroIntro, setHeroIntro] = React.useState('')
   const [rolesCsv, setRolesCsv] = React.useState('')
   const [githubUrl, setGithubUrl] = React.useState('')
   const [linkedinUrl, setLinkedinUrl] = React.useState('')
   const [email, setEmail] = React.useState('')
+  const [phone, setPhone] = React.useState('')
+  const [locationField, setLocationField] = React.useState('')
   const [aboutBio, setAboutBio] = React.useState('')
 
   function openCreateOrEdit(r: ProfileRow | null) {
     if (!r) {
       setDisplayName('')
+      setTitle('')
       setAvailability('')
       setHeroIntro('')
       setRolesCsv('')
       setGithubUrl('')
       setLinkedinUrl('')
       setEmail('')
+      setPhone('')
+      setLocationField('')
       setAboutBio('')
     } else {
       setDisplayName(r.display_name ?? '')
+      setTitle(r.title ?? '')
       setAvailability(r.availability_badge ?? '')
       setHeroIntro(r.hero_intro ?? '')
       setRolesCsv(listToCsv(r.typewriter_roles))
       setGithubUrl(r.github_url ?? '')
       setLinkedinUrl(r.linkedin_url ?? '')
       setEmail(r.email ?? '')
+      setPhone(r.phone ?? '')
+      setLocationField(r.location ?? '')
       setAboutBio(r.about_bio ?? '')
     }
     setOpen(true)
@@ -1500,12 +1577,15 @@ function ProfilePanel({
   async function submit(r: ProfileRow | null) {
     const payload = {
       display_name: displayName || null,
+      title: title || null,
       availability_badge: availability || null,
       hero_intro: heroIntro || null,
       typewriter_roles: parseCommaList(rolesCsv),
       github_url: githubUrl || null,
       linkedin_url: linkedinUrl || null,
       email: email || null,
+      phone: phone || null,
+      location: locationField || null,
       about_bio: aboutBio || null,
     }
 
@@ -1540,6 +1620,7 @@ function ProfilePanel({
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Badge</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -1548,8 +1629,11 @@ function ProfilePanel({
             <TableBody>
               {!row ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
-                    No profile row — create one to store hero and about content in Supabase.
+                  <TableCell
+                    colSpan={5}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No profile row — create one to store hero and footer content.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -1557,13 +1641,16 @@ function ProfilePanel({
                   <TableCell className="font-medium">
                     {row.display_name ?? '—'}
                   </TableCell>
+                  <TableCell className="max-w-[140px] truncate text-sm">
+                    {row.title ?? '—'}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {row.email ?? '—'}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                  <TableCell className="max-w-[160px] truncate text-sm text-muted-foreground">
                     {row.availability_badge ?? '—'}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="space-x-2 text-right">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1591,7 +1678,7 @@ function ProfilePanel({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {!row ? 'Create profile row' : 'Edit profile row'}
@@ -1603,67 +1690,98 @@ function ProfilePanel({
               <Input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="bg-secondary/40 border-border"
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Title / headline</Label>
+              <Input
+                value={title}
+                placeholder="Subtitle line under name (not typewriter)"
+                onChange={(e) => setTitle(e.target.value)}
+                className="border-border bg-secondary/40"
               />
             </div>
             <div className="grid gap-2">
               <Label>Availability badge text</Label>
               <Input
                 value={availability}
-                placeholder="Available for opportunities"
+                placeholder="Badge above name"
                 onChange={(e) => setAvailability(e.target.value)}
-                className="bg-secondary/40 border-border"
+                className="border-border bg-secondary/40"
               />
             </div>
             <div className="grid gap-2">
               <Label>Hero intro paragraph</Label>
               <Textarea
-                rows={3}
+                rows={4}
                 value={heroIntro}
                 onChange={(e) => setHeroIntro(e.target.value)}
-                className="bg-secondary/40 border-border"
+                className="border-border bg-secondary/40"
               />
             </div>
             <div className="grid gap-2">
               <Label>Typewriter roles (comma-separated)</Label>
               <Input
                 value={rolesCsv}
-                placeholder="Network Engineer, Python Developer, …"
+                placeholder="Network Engineer, Python Developer …"
                 onChange={(e) => setRolesCsv(e.target.value)}
-                className="bg-secondary/40 border-border"
+                className="border-border bg-secondary/40"
               />
             </div>
-            <div className="grid gap-2">
-              <Label>GitHub URL</Label>
-              <Input
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                className="bg-secondary/40 border-border"
-              />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>GitHub URL</Label>
+                <Input
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  className="border-border bg-secondary/40"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>LinkedIn URL</Label>
+                <Input
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  className="border-border bg-secondary/40"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>LinkedIn URL</Label>
-              <Input
-                value={linkedinUrl}
-                onChange={(e) => setLinkedinUrl(e.target.value)}
-                className="bg-secondary/40 border-border"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Email</Label>
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-secondary/40 border-border"
-              />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid gap-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="border-border bg-secondary/40"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Phone</Label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="border-border bg-secondary/40"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Location</Label>
+                <Input
+                  value={locationField}
+                  onChange={(e) => setLocationField(e.target.value)}
+                  className="border-border bg-secondary/40"
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>About bio</Label>
               <Textarea
-                rows={6}
+                rows={8}
                 value={aboutBio}
+                placeholder="Shows in About section summary when set"
                 onChange={(e) => setAboutBio(e.target.value)}
-                className="bg-secondary/40 border-border"
+                className="border-border bg-secondary/40"
               />
             </div>
           </div>
@@ -1672,6 +1790,658 @@ function ProfilePanel({
               Cancel
             </Button>
             <Button onClick={() => void submit(row)}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/** ---- Education ---- */
+
+function EducationPanel({
+  rows,
+  wrapRefresh,
+  onDelete,
+}: {
+  rows: EducationRow[]
+  wrapRefresh: (fn: () => Promise<void>) => Promise<void>
+  onDelete: (row: EducationRow) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<EducationRow | null>(null)
+  const [degree, setDegree] = React.useState('')
+  const [field, setField] = React.useState('')
+  const [institution, setInstitution] = React.useState('')
+  const [period, setPeriod] = React.useState('')
+  const [loc, setLoc] = React.useState('')
+  const [grade, setGrade] = React.useState('')
+  const [sortOrder, setSortOrder] = React.useState('0')
+
+  function openCreate() {
+    setEditing(null)
+    setDegree('')
+    setField('')
+    setInstitution('')
+    setPeriod('')
+    setLoc('')
+    setGrade('')
+    setSortOrder(String(maxSortOrder(rows) + 1))
+    setOpen(true)
+  }
+
+  function openEdit(row: EducationRow) {
+    setEditing(row)
+    setDegree(row.degree ?? '')
+    setField(row.field ?? '')
+    setInstitution(row.institution ?? '')
+    setPeriod(row.period ?? '')
+    setLoc(row.location ?? '')
+    setGrade(row.grade ?? '')
+    setSortOrder(String(row.sort_order ?? 0))
+    setOpen(true)
+  }
+
+  async function submit() {
+    const payload = {
+      degree: degree || null,
+      field: field || null,
+      institution: institution || null,
+      period: period || null,
+      location: loc || null,
+      grade: grade || null,
+      sort_order: Number.parseInt(sortOrder, 10) || 0,
+    }
+    await wrapRefresh(async () => {
+      if (editing) {
+        const { error } = await supabase
+          .from('education')
+          .update(payload)
+          .eq('id', editing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('education').insert(payload)
+        if (error) throw error
+      }
+      setOpen(false)
+    })
+  }
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <Button className="gap-2" onClick={openCreate}>
+          <Plus className="size-4" />
+          Add education
+        </Button>
+      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Degree</TableHead>
+                <TableHead>Institution</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="max-w-[200px] font-medium">
+                    {truncate(row.degree ?? '—', 48)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.institution ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {row.period ?? '—'}
+                  </TableCell>
+                  <TableCell className="space-x-2 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border gap-1"
+                      onClick={() => openEdit(row)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-destructive hover:text-destructive"
+                      onClick={() => onDelete(row)}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No education rows.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit education' : 'New education'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>Degree</Label>
+              <Input
+                value={degree}
+                onChange={(e) => setDegree(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Field</Label>
+              <Input
+                value={field}
+                onChange={(e) => setField(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Institution</Label>
+              <Input
+                value={institution}
+                onChange={(e) => setInstitution(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Period</Label>
+              <Input
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Location</Label>
+              <Input
+                value={loc}
+                onChange={(e) => setLoc(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Grade</Label>
+              <Input
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Sort order</Label>
+              <Input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void submit()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/** ---- Testimonials ---- */
+
+function TestimonialsPanel({
+  rows,
+  wrapRefresh,
+  onDelete,
+}: {
+  rows: TestimonialRow[]
+  wrapRefresh: (fn: () => Promise<void>) => Promise<void>
+  onDelete: (row: TestimonialRow) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<TestimonialRow | null>(null)
+  const [name, setName] = React.useState('')
+  const [role, setRole] = React.useState('')
+  const [relationship, setRelationship] = React.useState('')
+  const [date, setDate] = React.useState('')
+  const [quote, setQuote] = React.useState('')
+  const [linkedinUrl, setLinkedinUrl] = React.useState('')
+  const [sortOrder, setSortOrder] = React.useState('0')
+
+  function openCreate() {
+    setEditing(null)
+    setName('')
+    setRole('')
+    setRelationship('')
+    setDate('')
+    setQuote('')
+    setLinkedinUrl('')
+    setSortOrder(String(maxSortOrder(rows) + 1))
+    setOpen(true)
+  }
+
+  function openEdit(row: TestimonialRow) {
+    setEditing(row)
+    setName(row.name)
+    setRole(row.role ?? '')
+    setRelationship(row.relationship ?? '')
+    setDate(row.date ?? '')
+    setQuote(row.quote)
+    setLinkedinUrl(row.linkedin_url ?? '')
+    setSortOrder(String(row.sort_order ?? 0))
+    setOpen(true)
+  }
+
+  async function submit() {
+    const payload = {
+      name,
+      role: role || null,
+      relationship: relationship || null,
+      date: date || null,
+      quote,
+      linkedin_url: linkedinUrl || null,
+      sort_order: Number.parseInt(sortOrder, 10) || 0,
+    }
+    await wrapRefresh(async () => {
+      if (editing) {
+        const { error } = await supabase
+          .from('testimonials')
+          .update(payload)
+          .eq('id', editing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('testimonials').insert(payload)
+        if (error) throw error
+      }
+      setOpen(false)
+    })
+  }
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <Button className="gap-2" onClick={openCreate}>
+          <Plus className="size-4" />
+          Add testimonial
+        </Button>
+      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Quote</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {row.role ?? '—'}
+                  </TableCell>
+                  <TableCell className="max-w-[260px] truncate text-xs text-muted-foreground">
+                    {row.quote}
+                  </TableCell>
+                  <TableCell className="space-x-2 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border gap-1"
+                      onClick={() => openEdit(row)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-destructive hover:text-destructive"
+                      onClick={() => onDelete(row)}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No testimonials.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? 'Edit testimonial' : 'New testimonial'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Role</Label>
+              <Input
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Relationship</Label>
+              <Input
+                value={relationship}
+                onChange={(e) => setRelationship(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Date</Label>
+              <Input
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Quote</Label>
+              <Textarea
+                rows={6}
+                value={quote}
+                onChange={(e) => setQuote(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>LinkedIn URL</Label>
+              <Input
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Sort order</Label>
+              <Input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!name.trim() || !quote.trim()}
+              onClick={() => void submit()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/** ---- Volunteering ---- */
+
+function VolunteeringPanel({
+  rows,
+  wrapRefresh,
+  onDelete,
+}: {
+  rows: VolunteeringRow[]
+  wrapRefresh: (fn: () => Promise<void>) => Promise<void>
+  onDelete: (row: VolunteeringRow) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<VolunteeringRow | null>(null)
+  const [title, setTitle] = React.useState('')
+  const [organization, setOrganization] = React.useState('')
+  const [period, setPeriod] = React.useState('')
+  const [loc, setLoc] = React.useState('')
+  const [description, setDescription] = React.useState('')
+  const [tagsCsv, setTagsCsv] = React.useState('')
+  const [sortOrder, setSortOrder] = React.useState('0')
+
+  function openCreate() {
+    setEditing(null)
+    setTitle('')
+    setOrganization('')
+    setPeriod('')
+    setLoc('')
+    setDescription('')
+    setTagsCsv('')
+    setSortOrder(String(maxSortOrder(rows) + 1))
+    setOpen(true)
+  }
+
+  function openEdit(row: VolunteeringRow) {
+    setEditing(row)
+    setTitle(row.title)
+    setOrganization(row.organization)
+    setPeriod(row.period ?? '')
+    setLoc(row.location ?? '')
+    setDescription(row.description ?? '')
+    setTagsCsv(listToCsv(row.tags))
+    setSortOrder(String(row.sort_order ?? 0))
+    setOpen(true)
+  }
+
+  async function submit() {
+    const payload = {
+      title,
+      organization,
+      period: period || null,
+      location: loc || null,
+      description: description || null,
+      tags: parseCommaList(tagsCsv),
+      sort_order: Number.parseInt(sortOrder, 10) || 0,
+    }
+    await wrapRefresh(async () => {
+      if (editing) {
+        const { error } = await supabase
+          .from('volunteering')
+          .update(payload)
+          .eq('id', editing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('volunteering').insert(payload)
+        if (error) throw error
+      }
+      setOpen(false)
+    })
+  }
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <Button className="gap-2" onClick={openCreate}>
+          <Plus className="size-4" />
+          Add volunteering
+        </Button>
+      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Organization</TableHead>
+                <TableHead>Role / title</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.organization}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.title}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {row.period ?? '—'}
+                  </TableCell>
+                  <TableCell className="space-x-2 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border gap-1"
+                      onClick={() => openEdit(row)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-destructive hover:text-destructive"
+                      onClick={() => onDelete(row)}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No volunteering rows.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-card sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? 'Edit volunteering' : 'New volunteering'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>Title (role)</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Organization</Label>
+              <Input
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Period</Label>
+              <Input
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Location</Label>
+              <Input
+                value={loc}
+                onChange={(e) => setLoc(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Description</Label>
+              <Textarea
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Tags (comma-separated)</Label>
+              <Input
+                value={tagsCsv}
+                onChange={(e) => setTagsCsv(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Sort order</Label>
+              <Input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="border-border bg-secondary/40"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!title.trim() || !organization.trim()}
+              onClick={() => void submit()}
+            >
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

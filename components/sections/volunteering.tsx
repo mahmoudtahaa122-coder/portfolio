@@ -2,132 +2,144 @@
 
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Heart, Users, Camera, Palette, Calendar, MapPin } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Users, Palette, Calendar, MapPin } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import type { VolunteeringRow } from "@/lib/admin/types"
+import { asStringArray } from "@/lib/portfolio-fields"
 
-const volunteerExperiences = [
-  {
-    organization: "E.A.S. Helwan",
-    role: "Head of the Media Committee",
-    period: "Sep 2019 – Aug 2021",
-    location: "Helwan University, Egypt",
-    description: "Led the media team, trained 13 members on design tools, and significantly improved the quality and consistency of produced content.",
-    icon: Users,
-    activities: ["Team Leadership", "Training & Mentorship", "Design Tools", "Quality Control"]
-  },
-  {
-    organization: "Pixels Egypt",
-    role: "Member of the Media Committee",
-    period: "Aug 2021 – Dec 2022",
-    location: "Egypt",
-    description: "Led media production for events and competitions, contributing to measurable improvements in the team's design output and delivery speed.",
-    icon: Palette,
-    activities: ["Media Production", "Event Coverage", "Design Output", "Team Collaboration"]
-  },
-]
+const ICONS: LucideIcon[] = [Users, Palette]
 
 export function Volunteering() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState<VolunteeringRow[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("volunteering")
+          .select("*")
+          .order("sort_order", { ascending: true })
+        if (cancelled) return
+        setRows(!error && data?.length ? (data as VolunteeringRow[]) : [])
+      } catch {
+        if (!cancelled) setRows([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
-    <section className="py-20 sm:py-32" ref={ref}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
+    <section ref={ref} className="py-20 sm:py-32">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="mb-16 text-center"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+          <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Community & Volunteering
             </span>
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Giving back to the community through student organizations and creative initiatives.
+          <p className="mx-auto max-w-2xl text-muted-foreground">
+            Giving back to the community through student organizations and creative
+            initiatives.
           </p>
         </motion.div>
 
-        {/* Volunteer Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {volunteerExperiences.map((exp, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.15 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -5 }}
-            >
-              <Card className="bg-card border-border hover:border-primary/50 transition-all hover:shadow-xl hover:shadow-primary/10 h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4 mb-4">
-                    <motion.div
-                      className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0"
-                      whileHover={{ rotate: 5, scale: 1.1 }}
-                    >
-                      <exp.icon className="h-7 w-7 text-primary" />
-                    </motion.div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-foreground">{exp.organization}</h3>
-                      <p className="text-primary font-medium">{exp.role}</p>
-                    </div>
-                  </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {loading ? (
+            [0, 1].map((i) => (
+              <Skeleton key={`vol-${i}`} className="min-h-[280px] rounded-xl border border-border" />
+            ))
+          ) : rows.length ? (
+            rows.map((exp, index) => {
+              const Icon = ICONS[index % ICONS.length]
+              const tags = asStringArray(exp.tags)
+              return (
+                <motion.div
+                  key={exp.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -5 }}
+                >
+                  <Card className="h-full border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10">
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex items-start gap-4">
+                        <motion.div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20" whileHover={{ rotate: 5, scale: 1.1 }}>
+                          <Icon className="h-7 w-7 text-primary" />
+                        </motion.div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground">
+                            {exp.organization}
+                          </h3>
+                          <p className="font-medium text-primary">{exp.title}</p>
+                        </div>
+                      </div>
 
-                  <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {exp.period}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {exp.location}
-                    </span>
-                  </div>
+                      <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        {exp.period ? (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {exp.period}
+                          </span>
+                        ) : null}
+                        {exp.location ? (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {exp.location}
+                          </span>
+                        ) : null}
+                      </div>
 
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                    {exp.description}
-                  </p>
+                      {exp.description ? (
+                        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                          {exp.description}
+                        </p>
+                      ) : null}
 
-                  {/* Activities */}
-                  <div className="flex flex-wrap gap-2">
-                    {exp.activities.map((activity, actIndex) => (
-                      <motion.span
-                        key={actIndex}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: actIndex * 0.05 }}
-                        viewport={{ once: true }}
-                        className="px-3 py-1 text-xs bg-secondary text-secondary-foreground rounded-full hover:bg-primary/20 hover:text-primary transition-colors"
-                      >
-                        {activity}
-                      </motion.span>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                      {tags.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {tags.map((activity, actIndex) => (
+                            <motion.span
+                              key={`${exp.id}-${actIndex}`}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              whileInView={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: actIndex * 0.05 }}
+                              viewport={{ once: true }}
+                              className="cursor-default rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-primary/20 hover:text-primary"
+                            >
+                              {activity}
+                            </motion.span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })
+          ) : (
+            <p className="col-span-full py-16 text-center text-sm text-muted-foreground md:col-span-2">
+              No volunteering entries yet.
+            </p>
+          )}
         </div>
-
-        {/* Impact Statement */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          viewport={{ once: true }}
-          className="mt-12 text-center"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-            <Heart className="h-4 w-4 text-primary" />
-            <span className="text-sm text-foreground">
-              Passionate about contributing to student communities and creative projects
-            </span>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

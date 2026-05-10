@@ -13,6 +13,9 @@ const emptyData: PortfolioAdminData = {
   certifications: [],
   blog_posts: [],
   profile: null,
+  education: [],
+  testimonials: [],
+  volunteering: [],
 }
 
 function firstSupabaseError(
@@ -25,15 +28,27 @@ function firstSupabaseError(
 }
 
 async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
-  const [projects, skills, experience, certifications, blog_posts, profileResp] =
-    await Promise.all([
-      supabase.from('projects').select('*').order('sort_order', { ascending: true }),
-      supabase.from('skills').select('*').order('sort_order', { ascending: true }),
-      supabase.from('experience').select('*').order('sort_order', { ascending: true }),
-      supabase.from('certifications').select('*').order('sort_order', { ascending: true }),
-      supabase.from('blog_posts').select('*').order('sort_order', { ascending: true }),
-      supabase.from('profile').select('*').limit(1).maybeSingle(),
-    ])
+  const [
+    projects,
+    skills,
+    experience,
+    certifications,
+    blog_posts,
+    profileResp,
+    education,
+    testimonials,
+    volunteering,
+  ] = await Promise.all([
+    supabase.from('projects').select('*').order('sort_order', { ascending: true }),
+    supabase.from('skills').select('*').order('sort_order', { ascending: true }),
+    supabase.from('experience').select('*').order('sort_order', { ascending: true }),
+    supabase.from('certifications').select('*').order('sort_order', { ascending: true }),
+    supabase.from('blog_posts').select('*').order('sort_order', { ascending: true }),
+    supabase.from('profile').select('*').limit(1).maybeSingle(),
+    supabase.from('education').select('*').order('sort_order', { ascending: true }),
+    supabase.from('testimonials').select('*').order('sort_order', { ascending: true }),
+    supabase.from('volunteering').select('*').order('sort_order', { ascending: true }),
+  ])
 
   const err = firstSupabaseError([
     ['projects', projects.error],
@@ -42,6 +57,9 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
     ['certifications', certifications.error],
     ['blog_posts', blog_posts.error],
     ['profile', profileResp.error],
+    ['education', education.error],
+    ['testimonials', testimonials.error],
+    ['volunteering', volunteering.error],
   ])
   if (err) throw err
 
@@ -53,6 +71,9 @@ async function fetchAllPortfolioData(): Promise<PortfolioAdminData> {
       []) as PortfolioAdminData['certifications'],
     blog_posts: (blog_posts.data ?? []) as PortfolioAdminData['blog_posts'],
     profile: (profileResp.data ?? null) as PortfolioAdminData['profile'],
+    education: (education.data ?? []) as PortfolioAdminData['education'],
+    testimonials: (testimonials.data ?? []) as PortfolioAdminData['testimonials'],
+    volunteering: (volunteering.data ?? []) as PortfolioAdminData['volunteering'],
   }
 }
 
@@ -85,7 +106,9 @@ export function usePortfolioAdmin() {
   useEffect(() => {
     if (!hydrated || !loggedIn) return
     void refresh().catch((e: unknown) => {
-      toast.error(e instanceof Error ? e.message : 'Failed to load data from Supabase.')
+      toast.error(
+        e instanceof Error ? e.message : 'Failed to load data from Supabase.',
+      )
     })
   }, [hydrated, loggedIn, refresh])
 
