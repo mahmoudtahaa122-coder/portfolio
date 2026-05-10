@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import { commands } from '@uiw/react-md-editor'
 
 import '@uiw/react-md-editor/markdown-editor.css'
-import '@uiw/react-md-editor/markdown.css'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 
