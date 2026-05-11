@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import Script from 'next/script'
 import './globals.css'
 
 const geist = Geist({ 
@@ -51,9 +52,21 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} bg-background`}>
       <body className="overflow-x-hidden font-sans antialiased">
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
-      </body>
+  {children}
+  {process.env.NODE_ENV === 'production' && <Analytics />}
+  <Script
+    src="https://www.googletagmanager.com/gtag/js?id=G-6DPP8B4KNE"
+    strategy="afterInteractive"
+  />
+  <Script id="google-analytics" strategy="afterInteractive">
+    {`
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-6DPP8B4KNE');
+    `}
+  </Script>
+</body>
     </html>
   )
 }
